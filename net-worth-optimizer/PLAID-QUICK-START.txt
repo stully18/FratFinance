@@ -1,0 +1,118 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║          🔗 PLAID INTEGRATION - QUICK START GUIDE 🔗         ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+📋 STEP 1: GET PLAID CREDENTIALS (5 min)
+────────────────────────────────────────────────────────────────
+
+1. Go to: https://dashboard.plaid.com/signup
+2. Create account (use company name: "Net Worth Optimizer")
+3. Navigate to: Team Settings → Keys
+4. Copy these values:
+   • client_id
+   • secret (sandbox)
+
+
+📋 STEP 2: ADD CREDENTIALS TO YOUR APP (2 min)
+────────────────────────────────────────────────────────────────
+
+cd ~/Development/FinanceFolder/net-worth-optimizer/backend
+cp .env.example .env
+nano .env
+
+Replace with your actual values:
+PLAID_CLIENT_ID=<paste_client_id_here>
+PLAID_SECRET=<paste_sandbox_secret_here>
+PLAID_ENV=sandbox
+
+Save: Ctrl+X, then Y, then Enter
+
+
+📋 STEP 3: ENABLE PRODUCTS IN PLAID (1 min)
+────────────────────────────────────────────────────────────────
+
+In Plaid Dashboard:
+Team Settings → Products → Enable:
+✅ Auth
+✅ Transactions
+
+Click "Save Changes"
+
+
+📋 STEP 4: INSTALL DEPENDENCIES (3 min)
+────────────────────────────────────────────────────────────────
+
+Backend:
+cd ~/Development/FinanceFolder/net-worth-optimizer/backend
+source venv/bin/activate
+pip install -r requirements.txt
+
+Frontend:
+cd ~/Development/FinanceFolder/net-worth-optimizer/frontend
+npm install
+
+
+📋 STEP 5: TEST IT! (2 min)
+────────────────────────────────────────────────────────────────
+
+Start the app:
+cd ~/Development/FinanceFolder/net-worth-optimizer
+./setup-and-run.sh
+
+Test the backend:
+curl http://localhost:8000/api/plaid/create-link-token \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "test-123"}'
+
+✅ If you see a "link_token" in the response, IT WORKS!
+
+
+═══════════════════════════════════════════════════════════════
+
+🧪 TEST CREDENTIALS (for Plaid's sandbox):
+
+When testing bank connections, use:
+• Username: user_good
+• Password: pass_good
+• MFA Code: 1234
+
+═══════════════════════════════════════════════════════════════
+
+📁 WHAT WAS ADDED:
+
+Backend:
+✅ /backend/app/services/plaid_service.py
+✅ /backend/.env (YOUR KEYS - keep secret!)
+✅ Updated: /backend/app/main.py (new endpoints)
+✅ Updated: /backend/requirements.txt (plaid-python)
+
+Frontend:
+✅ Updated: /frontend/package.json (react-plaid-link)
+
+API Endpoints Added:
+• POST /api/plaid/create-link-token
+• POST /api/plaid/exchange-token
+• POST /api/plaid/balance
+• POST /api/plaid/transactions
+
+═══════════════════════════════════════════════════════════════
+
+🚨 TROUBLESHOOTING:
+
+Problem: "Invalid client_id"
+→ Check .env file, copy exact value from Plaid Dashboard
+
+Problem: "plaid module not found"
+→ Run: pip install plaid-python
+
+Problem: Backend won't start
+→ Check terminal for specific error
+→ Verify .env file exists: ls -la backend/.env
+
+═══════════════════════════════════════════════════════════════
+
+Next: I can help you add the "Connect Bank" button to the UI!

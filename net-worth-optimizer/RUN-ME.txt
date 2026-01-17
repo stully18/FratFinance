@@ -1,0 +1,86 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║          🚀 NET WORTH OPTIMIZER - START HERE 🚀              ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+📋 STEP 1: Install Required Package (ONE TIME ONLY)
+────────────────────────────────────────────────────────────────
+
+Open a terminal and run:
+
+    sudo apt install python3.12-venv
+
+Enter your password when prompted.
+
+
+📋 STEP 2: Run the Application
+────────────────────────────────────────────────────────────────
+
+In the terminal, run:
+
+    cd ~/Development/FinanceFolder/net-worth-optimizer
+    ./setup-and-run.sh
+
+This will:
+  ✓ Install all dependencies
+  ✓ Start the backend server
+  ✓ Start the frontend server
+  ✓ Open your browser automatically
+
+
+📋 STEP 3: Use the App
+────────────────────────────────────────────────────────────────
+
+Your browser will open to: http://localhost:3000
+
+Try these example values:
+  • Loan Principal: 25000
+  • Interest Rate: 9.0
+  • Minimum Payment: 200
+  • Monthly Spare Cash: 100
+  • Months Until Graduation: 48
+
+Click "Optimize My Money" to see your recommendation!
+
+
+📋 STEP 4: Stop the Application
+────────────────────────────────────────────────────────────────
+
+In the terminal where the app is running, press:
+
+    Ctrl + C
+
+
+═══════════════════════════════════════════════════════════════
+
+💡 ALTERNATIVE: Manual Method (Two Terminals)
+
+Terminal 1 (Backend):
+    cd ~/Development/FinanceFolder/net-worth-optimizer
+    ./start-backend.sh
+
+Terminal 2 (Frontend):
+    cd ~/Development/FinanceFolder/net-worth-optimizer
+    ./start-frontend.sh
+
+Then open browser to: http://localhost:3000
+
+═══════════════════════════════════════════════════════════════
+
+❓ TROUBLESHOOTING
+
+Problem: "Permission denied"
+Solution: chmod +x setup-and-run.sh
+
+Problem: "Port already in use"
+Solution: sudo lsof -ti:8000 | xargs kill -9
+          sudo lsof -ti:3000 | xargs kill -9
+
+Problem: Browser doesn't open
+Solution: Manually go to http://localhost:3000
+
+═══════════════════════════════════════════════════════════════
+
+Happy optimizing! 💰📈
