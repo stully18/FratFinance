@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Data Test - College Wealth Builder</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 40px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            background: linear-gradient(to right, #4ade80, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        .market-data-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .loading {
+            text-align: center;
+            color: #9ca3af;
+            padding: 20px;
+        }
+        .price-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .price {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .change {
+            font-size: 18px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 6px;
+        }
+        .positive {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+        }
+        .negative {
+            color: #f87171;
+            background: rgba(248, 113, 113, 0.1);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .stat {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .stat-label {
+            color: #9ca3af;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        .source {
+            text-align: right;
+            color: #6b7280;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+        .error {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid #f87171;
+            color: #fca5a5;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        button {
+            background: linear-gradient(to right, #4ade80, #3b82f6);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .timestamp {
+            color: #6b7280;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 College Wealth Builder - Market Data Test</h1>
+        <p style="color: #9ca3af; margin-bottom: 30px;">
+            This page demonstrates the live market data integration for the dashboard.
+        </p>
+
+        <button onclick="fetchMarketData()" id="refreshBtn">🔄 Fetch Live Market Data</button>
+
+        <div id="marketDataContainer"></div>
+    </div>
+
+    <script>
+        async function fetchMarketData() {
+            const container = document.getElementById('marketDataContainer');
+            const btn = document.getElementById('refreshBtn');
+
+            btn.disabled = true;
+            container.innerHTML = `
+                <div class="market-data-card">
+                    <div class="loading">⏳ Fetching live VOO market data...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('http://localhost:8000/api/market/voo-live');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                displayMarketData(data);
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="market-data-card">
+                        <div class="error">
+                            ❌ Failed to fetch market data: ${error.message}
+                            <br><br>
+                            Make sure the backend is running on http://localhost:8000
+                        </div>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function displayMarketData(data) {
+            const container = document.getElementById('marketDataContainer');
+
+            const changeClass = data.change_percent_today >= 0 ? 'positive' : 'negative';
+            const changeSymbol = data.change_percent_today >= 0 ? '↑' : '↓';
+
+            let statsHtml = '';
+
+            if (data.ytd_return !== null) {
+                const ytdClass = data.ytd_return >= 0 ? 'positive' : 'negative';
+                statsHtml += `
+                    <div class="stat">
+                        <div class="stat-label">YTD Return</div>
+                        <div class="stat-value ${ytdClass}">
+                            ${data.ytd_return >= 0 ? '+' : ''}${data.ytd_return.toFixed(2)}%
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (data.one_year_return !== null) {
+                const oneYrClass = data.one_year_return >= 0 ? 'positive' : 'negative';
+                statsHtml += `
+                    <div class="stat">
+                        <div class="stat-label">1-Year Return</div>
+                        <div class="stat-value ${oneYrClass}">
+                            ${data.one_year_return >= 0 ? '+' : ''}${data.one_year_return.toFixed(2)}%
+                        </div>
+                    </div>
+                `;
+            }
+
+            statsHtml += `
+                <div class="stat">
+                    <div class="stat-label">Historical Avg</div>
+                    <div class="stat-value" style="color: #60a5fa;">
+                        ~${data.five_year_avg_return.toFixed(1)}%/yr
+                    </div>
+                </div>
+            `;
+
+            const errorNote = data.error ? `
+                <div class="error" style="margin-top: 16px;">
+                    ⚠️ ${data.error}
+                    <br><small>The system is showing default values because external APIs are unavailable.</small>
+                </div>
+            ` : '';
+
+            container.innerHTML = `
+                <div class="market-data-card">
+                    <h2 style="margin-top: 0;">📈 ${data.ticker} - Vanguard S&P 500 ETF</h2>
+
+                    <div class="price-display">
+                        <div class="price">$${data.price.toFixed(2)}</div>
+                        <div class="change ${changeClass}">
+                            ${changeSymbol} ${Math.abs(data.change_percent_today).toFixed(2)}% today
+                        </div>
+                    </div>
+
+                    <div class="stats">
+                        ${statsHtml}
+                    </div>
+
+                    <div class="source">
+                        📡 Data Source: ${data.data_source}
+                        <div class="timestamp">Last Updated: ${new Date(data.last_updated).toLocaleString()}</div>
+                    </div>
+
+                    ${errorNote}
+                </div>
+
+                <div class="market-data-card" style="background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3);">
+                    <h3 style="margin-top: 0; color: #a78bfa;">✅ Integration Working!</h3>
+                    <p style="color: #d1d5db; margin: 12px 0;">
+                        This market data is fetched from the backend API endpoint:
+                        <code style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px;">
+                            GET /api/market/voo-live
+                        </code>
+                    </p>
+                    <p style="color: #9ca3af; font-size: 14px; margin: 0;">
+                        The same data is automatically displayed on the main dashboard when students load the page.
+                        This helps them compare their debt interest rates against actual market performance.
+                    </p>
+                </div>
+            `;
+        }
+
+        // Auto-fetch on page load
+        window.addEventListener('load', () => {
+            fetchMarketData();
+        });
+    </script>
+</body>
+</html>

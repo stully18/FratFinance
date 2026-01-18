@@ -23,10 +23,11 @@ PLAID_SECRET = os.getenv('PLAID_SECRET')
 PLAID_ENV = os.getenv('PLAID_ENV', 'sandbox')
 
 # Map environment to Plaid host
+# Updated for newer plaid-python API
 PLAID_HOST_MAP = {
-    'sandbox': plaid.Environment.Sandbox,
-    'development': plaid.Environment.Development,
-    'production': plaid.Environment.Production
+    'sandbox': 'https://sandbox.plaid.com',
+    'development': 'https://development.plaid.com',
+    'production': 'https://production.plaid.com'
 }
 
 # Initialize Plaid client

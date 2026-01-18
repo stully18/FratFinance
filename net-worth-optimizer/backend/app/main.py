@@ -3,9 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from app.services.optimization_engine import calculate_optimization_path
-from app.models.schemas import OptimizationRequest, OptimizationResult
+from app.models.schemas import OptimizationRequest, OptimizationResult, MultiLoanOptimizationRequest, MultiLoanOptimizationResult
 from app.services import plaid_service
 from app.services import investment_planner
+from app.services import multi_loan_optimizer
 
 app = FastAPI(
     title="Net Worth Optimizer API",
@@ -32,9 +33,13 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
+    import os
+    plaid_configured = bool(os.getenv('PLAID_CLIENT_ID')) and bool(os.getenv('PLAID_SECRET'))
+
     return {
         "message": "Net Worth Optimizer API",
         "version": "1.0.0",
+        "plaid_configured": plaid_configured,
         "endpoints": {
             "health": "/health",
             "optimize": "/api/optimize"
@@ -72,6 +77,43 @@ async def optimize_financial_path(request: OptimizationRequest):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+@app.post("/api/optimize-multi-loan", response_model=MultiLoanOptimizationResult)
+async def optimize_multi_loan(request: MultiLoanOptimizationRequest):
+    """
+    Optimize allocation across multiple loans vs investing.
+
+    Uses debt avalanche method (highest interest rate first) and compares
+    against expected market returns to recommend pay debts vs invest.
+
+    Returns:
+    - Overall recommendation (pay_debts or invest)
+    - Prioritized debt payoff plan (1st, 2nd, 3rd priority)
+    - Investment allocations (if recommending invest)
+    - Net worth projections
+    - Clear reasoning for recommendations
+    """
+    try:
+        print(f"[DEBUG] Multi-loan optimization: {len(request.loans)} loans, ${request.monthly_budget}/month budget")
+
+        result = multi_loan_optimizer.calculate_multi_loan_optimization(
+            loans=request.loans,
+            monthly_budget=request.monthly_budget,
+            market_assumptions=request.market_assumptions,
+            months_until_graduation=request.months_until_graduation
+        )
+
+        print(f"[DEBUG] Recommendation: {result.overall_recommendation}, Confidence: {result.confidence_score}")
+        return result
+    except ValueError as e:
+        print(f"[ERROR] Validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}")
+    except Exception as e:
+        print(f"[ERROR] Optimization failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
 # ============= Plaid Integration Endpoints =============
 
 class CreateLinkTokenRequest(BaseModel):
@@ -99,6 +141,9 @@ async def create_link_token(request: CreateLinkTokenRequest):
         result = plaid_service.create_link_token(request.user_id, request.account_type)
         return result
     except Exception as e:
+        print(f"[ERROR] Plaid link token creation failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -379,7 +424,7 @@ async def generate_action_plan(request: GenerateActionPlanRequest):
 
 # ============= Market Data Endpoints =============
 
-from app.services import market_data_service
+from app.services import market_data_service, market_data_fetcher, personalized_planner
 
 class GetMarketDataRequest(BaseModel):
     ticker: str
@@ -435,4 +480,118 @@ async def get_multiple_etf_data(request: GetMultipleMarketDataRequest):
         return data
     except Exception as e:
         print(f"[ERROR] Batch market data fetch failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/market/voo-live")
+async def get_voo_live_data():
+    """
+    Get live VOO (S&P 500 ETF) market data.
+
+    Returns:
+    - Current price
+    - Today's change percentage
+    - YTD return
+    - 1-year return
+    - 5-year average return
+    - Data source (Alpha Vantage or Yahoo Finance)
+    - Last updated timestamp
+
+    Free tier: Uses Yahoo Finance (no API key needed) with Alpha Vantage fallback.
+    """
+    try:
+        print("[DEBUG] Fetching live VOO market data...")
+        data = market_data_fetcher.get_voo_live_data()
+        print(f"[DEBUG] VOO: ${data['price']} ({data['change_percent_today']:+.2f}% today) - Source: {data['data_source']}")
+        return data
+    except Exception as e:
+        print(f"[ERROR] VOO live data fetch failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/market/sp500-performance")
+async def get_sp500_performance():
+    """
+    Get S&P 500 index performance data.
+
+    Returns:
+    - 1-year return
+    - Historical average return
+    - Last updated timestamp
+    """
+    try:
+        print("[DEBUG] Fetching S&P 500 performance data...")
+        data = market_data_fetcher.get_sp500_performance()
+        print(f"[DEBUG] S&P 500: 1yr return {data.get('one_year_return', 'N/A')}%")
+        return data
+    except Exception as e:
+        print(f"[ERROR] S&P 500 performance fetch failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/market/etf/{ticker}")
+async def get_etf_data(ticker: str):
+    """
+    Get detailed market data for a specific ETF.
+
+    Returns:
+    - Current price
+    - YTD and 1-year returns
+    - Expense ratio
+    - Category and description
+    """
+    try:
+        print(f"[DEBUG] Fetching market data for {ticker}...")
+        data = market_data_fetcher.get_etf_details(ticker.upper())
+        print(f"[DEBUG] {ticker}: ${data['price']} (1yr: {data.get('one_year_return', 'N/A')}%)")
+        return data
+    except Exception as e:
+        print(f"[ERROR] ETF data fetch failed for {ticker}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============= Personalized Financial Plan Endpoints =============
+
+from app.models.schemas import PersonalizedPlanRequest, PersonalizedPlanResult
+
+
+@app.post("/api/plan/generate", response_model=PersonalizedPlanResult)
+async def generate_financial_plan(request: PersonalizedPlanRequest):
+    """
+    Generate a personalized investment plan based on user's profile.
+
+    Takes into account:
+    - Monthly investment amount
+    - Risk tolerance (conservative, moderate, aggressive)
+    - Financial goals (wealth building, income, preservation, debt freedom)
+    - Time horizon
+    - Current savings
+    - Emergency fund status
+
+    Returns:
+    - Customized ETF portfolio with real market data
+    - Expected returns and projections
+    - Monthly investment breakdown
+    - Actionable next steps
+    - Warnings if applicable
+
+    Uses REAL market data for ETF prices and performance.
+    """
+    try:
+        print(f"[DEBUG] Generating personalized plan: ${request.monthly_investment_amount}/mo, {request.risk_tolerance.value} risk, {request.financial_goal.value} goal")
+
+        plan = personalized_planner.generate_personalized_plan(request)
+
+        print(f"[DEBUG] Plan generated: {plan.portfolio_name}, {len(plan.target_allocation)} ETFs, {plan.expected_annual_return}% expected return")
+        return plan
+    except Exception as e:
+        print(f"[ERROR] Plan generation failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

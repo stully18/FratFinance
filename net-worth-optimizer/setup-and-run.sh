@@ -5,12 +5,11 @@ echo "   Net Worth Optimizer - Setup & Launch"
 echo "═══════════════════════════════════════════════════════"
 echo ""
 
-# Check if python3-venv is installed
-if ! dpkg -l | grep -q python3.12-venv; then
-    echo "⚠️  python3.12-venv is not installed"
+# Check if Python is installed
+if ! command -v python3 > /dev/null; then
+    echo "⚠️  Python 3 is not installed"
     echo ""
-    echo "Please run this command first:"
-    echo "  sudo apt install python3.12-venv"
+    echo "Please install Python 3 first"
     echo ""
     exit 1
 fi

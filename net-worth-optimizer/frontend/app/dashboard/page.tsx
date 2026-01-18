@@ -1,0 +1,513 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import type { Loan, LoanType, MultiLoanRequest, MultiLoanResult, MarketAssumptions } from '@/types';
+
+interface VooMarketData {
+  ticker: string;
+  price: number;
+  change_percent_today: number;
+  ytd_return: number | null;
+  one_year_return: number | null;
+  five_year_avg_return: number;
+  data_source: string;
+  last_updated: string;
+  error?: string;
+}
+
+export default function Dashboard() {
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [monthlyBudget, setMonthlyBudget] = useState<string>('');
+  const [result, setResult] = useState<MultiLoanResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [vooData, setVooData] = useState<VooMarketData | null>(null);
+  const [marketDataLoading, setMarketDataLoading] = useState(false);
+
+  const addLoan = () => {
+    const newLoan: Loan = {
+      id: `loan-${Date.now()}`,
+      loan_type: 'student_loan',
+      loan_name: `Loan ${loans.length + 1}`,
+      principal: 0,
+      interest_rate: 0,
+      minimum_payment: 0,
+      term_months: 120
+    };
+    setLoans([...loans, newLoan]);
+  };
+
+  const removeLoan = (id: string) => {
+    setLoans(loans.filter(l => l.id !== id));
+  };
+
+  const updateLoan = (id: string, field: keyof Loan, value: any) => {
+    setLoans(loans.map(l => l.id === id ? { ...l, [field]: value } : l));
+  };
+
+  const handleOptimize = async () => {
+    if (loans.length === 0) {
+      setError('Please add at least one loan');
+      return;
+    }
+
+    if (!monthlyBudget || parseFloat(monthlyBudget) <= 0) {
+      setError('Please enter monthly spare cash');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const marketAssumptions: MarketAssumptions = {
+        expected_annual_return: 0.10,
+        volatility: 0.15,
+        risk_free_rate: 0.04
+      };
+
+      const request: MultiLoanRequest = {
+        loans: loans.map(({ id, ...loan }) => ({
+          ...loan,
+          interest_rate: loan.interest_rate / 100  // Convert percentage to decimal
+        })),
+        monthly_budget: parseFloat(monthlyBudget),
+        months_until_graduation: 60,  // Default to 5 years for projections (not used in recommendation logic)
+        market_assumptions: marketAssumptions
+      };
+
+      const response = await fetch('http://localhost:8000/api/optimize-multi-loan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request)
+      });
+
+      if (!response.ok) {
+        throw new Error('Optimization failed');
+      }
+
+      const data = await response.json();
+      setResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to optimize');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getLoanTypeLabel = (type: LoanType): string => {
+    const labels = {
+      student_loan: 'Student Loan',
+      car_loan: 'Car Loan',
+      credit_card: 'Credit Card',
+      personal_loan: 'Personal Loan',
+      other: 'Other'
+    };
+    return labels[type];
+  };
+
+  // Fetch live market data on component mount
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      setMarketDataLoading(true);
+      try {
+        const response = await fetch('http://localhost:8000/api/market/voo-live');
+        if (response.ok) {
+          const data = await response.json();
+          setVooData(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch market data:', err);
+      } finally {
+        setMarketDataLoading(false);
+      }
+    };
+
+    fetchMarketData();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+            College Wealth Builder
+          </h1>
+          <p className="text-gray-400">Add your loans and see which debts to pay first vs investing</p>
+
+          {/* Live Market Data */}
+          {vooData && !vooData.error && (
+            <div className="mt-4 p-4 bg-gray-800/30 border border-gray-700/50 rounded-lg">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400">Live Market Data:</span>
+                  <span className="font-bold text-white">VOO ${vooData.price.toFixed(2)}</span>
+                  <span className={`text-sm font-semibold ${vooData.change_percent_today >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {vooData.change_percent_today >= 0 ? '↑' : '↓'} {Math.abs(vooData.change_percent_today).toFixed(2)}% today
+                  </span>
+                </div>
+                <div className="flex gap-6 text-sm">
+                  {vooData.ytd_return !== null && (
+                    <div>
+                      <span className="text-gray-400">YTD: </span>
+                      <span className={vooData.ytd_return >= 0 ? 'text-green-400' : 'text-red-400'}>
+                        {vooData.ytd_return >= 0 ? '+' : ''}{vooData.ytd_return.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
+                  {vooData.one_year_return !== null && (
+                    <div>
+                      <span className="text-gray-400">1-Year: </span>
+                      <span className={vooData.one_year_return >= 0 ? 'text-green-400' : 'text-red-400'}>
+                        {vooData.one_year_return >= 0 ? '+' : ''}{vooData.one_year_return.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-gray-400">Historical Avg: </span>
+                    <span className="text-blue-400">~{vooData.five_year_avg_return.toFixed(0)}%/yr</span>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Source: {vooData.data_source}
+                </div>
+              </div>
+            </div>
+          )}
+          {marketDataLoading && (
+            <div className="mt-4 p-4 bg-gray-800/30 border border-gray-700/50 rounded-lg text-center text-gray-400">
+              Loading market data...
+            </div>
+          )}
+        </div>
+
+        {/* Loan Input Section */}
+        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">Your Loans</h2>
+            <button
+              onClick={addLoan}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors font-semibold"
+            >
+              + Add Loan
+            </button>
+          </div>
+
+          {loans.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-5xl mb-4">📝</div>
+              <p className="text-xl text-gray-300 mb-2">No loans added yet</p>
+              <p className="text-sm text-gray-400 mb-6">Click "Add Loan" above to get started</p>
+
+              <div className="max-w-2xl mx-auto text-left bg-gray-700/50 rounded-lg p-6">
+                <h3 className="font-bold text-lg mb-3 text-green-400">💡 Quick Tips:</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>• Add all your debts: student loans, credit cards, car loans, etc.</li>
+                  <li>• You'll need: total balance, interest rate (APR), and monthly payment</li>
+                  <li>• Enter your monthly spare cash (money left after all bills/expenses)</li>
+                  <li>• We'll tell you which debt to tackle first vs investing in the market</li>
+                </ul>
+
+                <div className="mt-4 pt-4 border-t border-gray-600">
+                  <p className="text-xs text-gray-400">
+                    <strong>Example:</strong> Credit card at 18% APR, Student loan at 6% APR →
+                    We'll recommend paying the credit card first (18% guaranteed return beats market's 10%)
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {loans.map((loan) => (
+                <div key={loan.id} className="bg-gray-700/50 border border-gray-600 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Loan Type</label>
+                      <select
+                        value={loan.loan_type}
+                        onChange={(e) => updateLoan(loan.id, 'loan_type', e.target.value as LoanType)}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white"
+                      >
+                        <option value="student_loan">Student Loan</option>
+                        <option value="car_loan">Car Loan</option>
+                        <option value="credit_card">Credit Card</option>
+                        <option value="personal_loan">Personal Loan</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Loan Name</label>
+                      <input
+                        type="text"
+                        value={loan.loan_name}
+                        onChange={(e) => updateLoan(loan.id, 'loan_name', e.target.value)}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white"
+                        placeholder="e.g., Chase Credit Card"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Amount Owed ($)</label>
+                      <input
+                        type="number"
+                        value={loan.principal || ''}
+                        onChange={(e) => updateLoan(loan.id, 'principal', parseFloat(e.target.value) || 0)}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white"
+                        placeholder="25000"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Interest Rate (%)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={loan.interest_rate || ''}
+                        onChange={(e) => updateLoan(loan.id, 'interest_rate', parseFloat(e.target.value) || 0)}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white"
+                        placeholder="7.5"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Monthly Payment ($)</label>
+                      <input
+                        type="number"
+                        value={loan.minimum_payment || ''}
+                        onChange={(e) => updateLoan(loan.id, 'minimum_payment', parseFloat(e.target.value) || 0)}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white"
+                        placeholder="200"
+                      />
+                    </div>
+
+                    <div className="flex items-end">
+                      <button
+                        onClick={() => removeLoan(loan.id)}
+                        className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Budget Input */}
+          <div className="mt-6 pt-6 border-t border-gray-600">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Monthly Spare Cash ($)</label>
+              <input
+                type="number"
+                value={monthlyBudget}
+                onChange={(e) => setMonthlyBudget(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white"
+                placeholder="100"
+              />
+              <p className="text-xs text-gray-500 mt-1">Extra money you have each month after paying all minimums and expenses</p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleOptimize}
+            disabled={isLoading || loans.length === 0}
+            className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold text-lg transition-colors"
+          >
+            {isLoading ? 'Optimizing...' : 'Optimize My Money 💰'}
+          </button>
+
+          {error && (
+            <div className="mt-4 p-3 bg-red-900/30 border border-red-700 rounded text-red-300 text-sm">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Results Section */}
+        {result && (
+          <div className="space-y-6">
+            {/* Recommendation Card */}
+            <div className={`border-2 rounded-lg p-6 ${
+              result.overall_recommendation === 'pay_debts'
+                ? 'bg-orange-900/20 border-orange-500'
+                : 'bg-green-900/20 border-green-500'
+            }`}>
+              <div className="text-center mb-4">
+                <div className="text-5xl mb-2">
+                  {result.overall_recommendation === 'pay_debts' ? '💳' : '📈'}
+                </div>
+                <h2 className="text-3xl font-bold mb-2">
+                  {result.overall_recommendation === 'pay_debts' ? 'Pay Debts First' : 'Invest in VOO'}
+                </h2>
+                <div className="text-sm text-gray-400">
+                  Confidence: {(result.confidence_score * 100).toFixed(0)}%
+                </div>
+              </div>
+
+              <div className="bg-gray-800/50 rounded-lg p-4">
+                <h3 className="font-bold mb-2">Why This Plan?</h3>
+                <ul className="space-y-1 text-sm">
+                  {result.reasoning.map((reason, idx) => (
+                    <li key={idx} className="text-gray-300">• {reason}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Debt Priority List */}
+            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+              <h2 className="text-2xl font-bold mb-4">🎯 Debt Priority (Avalanche Method)</h2>
+              <div className="space-y-3">
+                {result.debt_priorities.map((debt) => (
+                  <div
+                    key={debt.priority}
+                    className={`border rounded-lg p-4 ${
+                      debt.priority === 1
+                        ? 'bg-yellow-900/30 border-yellow-600'
+                        : 'bg-gray-700/30 border-gray-600'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${
+                            debt.priority === 1
+                              ? 'bg-yellow-600 text-white'
+                              : 'bg-gray-600 text-gray-200'
+                          }`}>
+                            PRIORITY {debt.priority}
+                          </span>
+                          <span className="font-bold">{debt.loan_name}</span>
+                          <span className="text-sm text-gray-400">({getLoanTypeLabel(debt.loan_type as LoanType)})</span>
+                        </div>
+                        <div className="text-sm text-gray-300 mb-2">{debt.reason}</div>
+                        {debt.recommended_extra_payment > 0 && (
+                          <div className="text-lg font-bold text-green-400">
+                            Pay extra: ${debt.recommended_extra_payment.toFixed(0)}/month
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-red-400">{debt.guaranteed_return.toFixed(1)}%</div>
+                        <div className="text-xs text-gray-400">Interest Rate</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Investment Recommendation */}
+            {result.investment_recommendation && result.investment_recommendation.length > 0 && (
+              <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-6">
+                <h2 className="text-2xl font-bold mb-4">📊 Investment Allocation</h2>
+                <div className="space-y-3">
+                  {result.investment_recommendation.map((alloc, idx) => (
+                    <div key={idx} className="bg-gray-800/50 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-lg">{alloc.ticker}</span>
+                            <span className="text-gray-400">- {alloc.name}</span>
+                          </div>
+                          <div className="text-sm text-gray-300 mb-2">{alloc.description}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-400">${alloc.monthly_amount.toFixed(2)}</div>
+                          <div className="text-sm text-gray-400">{alloc.percentage.toFixed(0)}% allocation</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Educational Resources */}
+            <div className="bg-purple-900/20 border border-purple-700 rounded-lg p-6">
+              <h2 className="text-2xl font-bold mb-4">📚 Learn More</h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <h3 className="font-bold mb-2 text-green-400">What is VOO?</h3>
+                  <p className="text-sm text-gray-300 mb-2">
+                    VOO is Vanguard's S&P 500 ETF - it tracks the 500 largest US companies (Apple, Microsoft, Amazon, etc.)
+                  </p>
+                  <ul className="text-xs text-gray-400 space-y-1">
+                    <li>• Historical return: ~10% annually</li>
+                    <li>• Expense ratio: 0.03% (very low)</li>
+                    <li>• Diversified across all major sectors</li>
+                  </ul>
+                </div>
+
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <h3 className="font-bold mb-2 text-blue-400">Debt Avalanche Method</h3>
+                  <p className="text-sm text-gray-300 mb-2">
+                    Pay off debts in order of highest to lowest interest rate
+                  </p>
+                  <ul className="text-xs text-gray-400 space-y-1">
+                    <li>• Saves the most money on interest</li>
+                    <li>• Mathematically optimal strategy</li>
+                    <li>• Always pay minimums on all debts</li>
+                  </ul>
+                </div>
+
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <h3 className="font-bold mb-2 text-yellow-400">Where to Invest</h3>
+                  <p className="text-sm text-gray-300 mb-2">
+                    Open a brokerage account (free and easy)
+                  </p>
+                  <ul className="text-xs text-gray-400 space-y-1">
+                    <li>• Fidelity, Vanguard, or Schwab</li>
+                    <li>• No minimum investment required</li>
+                    <li>• Buy VOO directly (commission-free)</li>
+                  </ul>
+                </div>
+
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <h3 className="font-bold mb-2 text-red-400">Key Principles</h3>
+                  <ul className="text-sm text-gray-300 space-y-1">
+                    <li>• Time in market > timing the market</li>
+                    <li>• Don't check daily - invest long-term</li>
+                    <li>• Dollar-cost average (invest monthly)</li>
+                    <li>• Keep investing during market drops</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-gray-800/50 rounded-lg p-4">
+                <h3 className="font-bold mb-3 text-purple-400">📖 Recommended Resources</h3>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-gray-400">Book:</span>
+                    <span className="ml-2 text-white">"The Simple Path to Wealth" by JL Collins</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">YouTube:</span>
+                    <span className="ml-2 text-white">The Plain Bagel, Graham Stephan (for beginners)</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Reddit:</span>
+                    <span className="ml-2 text-white">r/personalfinance, r/Bogleheads (index investing)</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Calculator:</span>
+                    <span className="ml-2 text-white">unbury.me (debt payoff visualizer)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-200">
+                <strong>Remember:</strong> This tool provides mathematical guidance, not financial advice.
+                Consider your personal situation, emergency fund needs, and risk tolerance.
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

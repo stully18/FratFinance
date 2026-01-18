@@ -2,316 +2,348 @@
 
 import { useState } from 'react';
 
-interface InvestmentPlan {
-  risk_profile: string;
-  risk_tolerance: number;
-  allocation: {
-    stocks: number;
-    bonds: number;
-    cash: number;
-  };
-  allocation_dollars: {
-    stocks: number;
-    bonds: number;
-    cash: number;
-  };
-  recommendations: Array<{
-    category: string;
-    ticker: string;
-    name: string;
-    allocation_percent: number;
-    dollar_amount: number;
-    expense_ratio: number;
-    reason: string;
-  }>;
-  monthly_allocation: Array<{
-    ticker: string;
-    name: string;
-    monthly_amount: number;
-  }>;
-  advice: string[];
-  projections: {
-    expected_annual_return: number;
-    years: number;
-    current_value: number;
-    future_value: number;
-    total_gain: number;
-  };
-  next_steps: string[];
+interface ETFAllocation {
+  ticker: string;
+  name: string;
+  category: string;
+  percentage: number;
+  monthly_amount: number;
+  current_price: number;
+  ytd_return: number | null;
+  one_year_return: number | null;
+  expense_ratio: number;
+  description: string;
+  risk_level: string;
 }
 
-export default function InvestmentPlanPage() {
-  const [portfolioValue, setPortfolioValue] = useState('');
-  const [riskTolerance, setRiskTolerance] = useState(5);
-  const [monthlyContribution, setMonthlyContribution] = useState('');
-  const [plan, setPlan] = useState<InvestmentPlan | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+interface PersonalizedPlanResult {
+  portfolio_name: string;
+  risk_profile: string;
+  target_allocation: ETFAllocation[];
+  monthly_investment_breakdown: { [key: string]: number };
+  projected_value_1yr: number;
+  projected_value_5yr: number;
+  projected_value_10yr: number;
+  expected_annual_return: number;
+  portfolio_expense_ratio: number;
+  rebalancing_frequency: string;
+  reasoning: string[];
+  next_steps: string[];
+  warnings: string[] | null;
+}
 
-  const handleGeneratePlan = async (e: React.FormEvent) => {
+export default function PersonalizedPlanPage() {
+  const [formData, setFormData] = useState({
+    monthly_investment_amount: 500,
+    risk_tolerance: 'moderate',
+    financial_goal: 'wealth_building',
+    time_horizon_years: 10,
+    current_savings: 5000,
+    has_emergency_fund: true
+  });
+
+  const [plan, setPlan] = useState<PersonalizedPlanResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/investments/create-plan', {
+      const response = await fetch('http://localhost:8000/api/plan/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          total_portfolio_value: parseFloat(portfolioValue) || 0,
-          risk_tolerance: riskTolerance,
-          monthly_contribution: parseFloat(monthlyContribution) || 0
-        })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
       });
 
-      if (!response.ok) throw new Error('Failed to generate plan');
+      if (!response.ok) {
+        throw new Error('Failed to generate plan');
+      }
 
       const data = await response.json();
       setPlan(data);
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to generate investment plan');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const getRiskLabel = (risk: number) => {
-    if (risk <= 3) return 'Conservative';
-    if (risk <= 6) return 'Moderate';
-    return 'Aggressive';
-  };
-
-  const getRiskColor = (risk: number) => {
-    if (risk <= 3) return 'text-blue-400';
-    if (risk <= 6) return 'text-yellow-400';
-    return 'text-red-400';
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked :
+              type === 'number' ? parseFloat(value) : value
+    }));
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Back Button */}
-        <div className="mb-6">
-          <a
-            href="/"
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors w-fit"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Optimizer
-          </a>
-        </div>
-
-        <h1 className="text-4xl font-bold mb-2">Investment Plan Generator</h1>
+        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+          Personalized Investment Plan
+        </h1>
         <p className="text-gray-400 mb-8">
-          Get a personalized investment strategy based on your money and risk tolerance
+          Get a customized portfolio based on your financial goals, risk tolerance, and market data
         </p>
 
         {/* Input Form */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 mb-8">
-          <form onSubmit={handleGeneratePlan}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  How much money do you have to invest? ($)
-                </label>
+        <form onSubmit={handleSubmit} className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Monthly Investment Amount */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Monthly Investment Amount
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-3 text-gray-400">$</span>
                 <input
                   type="number"
-                  value={portfolioValue}
-                  onChange={(e) => setPortfolioValue(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="10000"
-                  required
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Monthly Contribution ($)
-                </label>
-                <input
-                  type="number"
-                  value={monthlyContribution}
-                  onChange={(e) => setMonthlyContribution(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="500"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Risk Tolerance: <span className={getRiskColor(riskTolerance)}>{riskTolerance}/10 - {getRiskLabel(riskTolerance)}</span>
-                </label>
-                <input
-                  type="range"
+                  name="monthly_investment_amount"
+                  value={formData.monthly_investment_amount}
+                  onChange={handleChange}
                   min="1"
-                  max="10"
-                  value={riskTolerance}
-                  onChange={(e) => setRiskTolerance(parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  step="1"
+                  className="w-full pl-8 pr-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  required
                 />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Conservative</span>
-                  <span>Aggressive</span>
-                </div>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-bold rounded-lg transition-colors"
-            >
-              {isLoading ? 'Generating Plan...' : 'Generate My Investment Plan'}
-            </button>
-          </form>
-        </div>
+            {/* Current Savings */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Current Savings
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-3 text-gray-400">$</span>
+                <input
+                  type="number"
+                  name="current_savings"
+                  value={formData.current_savings}
+                  onChange={handleChange}
+                  min="0"
+                  step="1"
+                  className="w-full pl-8 pr-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  required
+                />
+              </div>
+            </div>
 
-        {/* Results */}
+            {/* Risk Tolerance */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Risk Tolerance
+              </label>
+              <select
+                name="risk_tolerance"
+                value={formData.risk_tolerance}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="conservative">Conservative - Stability First</option>
+                <option value="moderate">Moderate - Balanced Growth</option>
+                <option value="aggressive">Aggressive - Maximum Growth</option>
+              </select>
+            </div>
+
+            {/* Financial Goal */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Primary Financial Goal
+              </label>
+              <select
+                name="financial_goal"
+                value={formData.financial_goal}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="wealth_building">Wealth Building - Long-term Growth</option>
+                <option value="income_generation">Income Generation - Dividends</option>
+                <option value="capital_preservation">Capital Preservation - Protect Assets</option>
+                <option value="debt_freedom">Debt Freedom - Build Emergency Fund</option>
+              </select>
+            </div>
+
+            {/* Time Horizon */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Time Horizon (Years)
+              </label>
+              <input
+                type="number"
+                name="time_horizon_years"
+                value={formData.time_horizon_years}
+                onChange={handleChange}
+                min="1"
+                max="50"
+                className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                required
+              />
+            </div>
+
+            {/* Emergency Fund */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="has_emergency_fund"
+                checked={formData.has_emergency_fund}
+                onChange={handleChange}
+                className="w-5 h-5 bg-gray-900/50 border border-gray-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              />
+              <label className="ml-3 text-sm font-medium text-gray-300">
+                I have a 3-6 month emergency fund
+              </label>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-6 w-full px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg font-semibold text-white hover:from-green-600 hover:to-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Generating Plan...' : 'Generate My Investment Plan'}
+          </button>
+        </form>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 mb-8">
+            <p className="text-red-400">Error: {error}</p>
+          </div>
+        )}
+
+        {/* Results Display */}
         {plan && (
           <div className="space-y-6">
-            {/* Risk Profile & Allocation */}
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-              <h2 className="text-2xl font-bold mb-4">Your Investment Strategy: {plan.risk_profile.toUpperCase()}</h2>
-
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-blue-400">{plan.allocation.stocks}%</div>
-                  <div className="text-sm text-gray-400">Stocks</div>
-                  <div className="text-lg font-semibold mt-2">${plan.allocation_dollars.stocks.toLocaleString()}</div>
+            {/* Portfolio Overview */}
+            <div className="bg-gradient-to-br from-green-900/30 to-blue-900/30 border border-green-500/30 rounded-lg p-6">
+              <h2 className="text-2xl font-bold mb-2">{plan.portfolio_name}</h2>
+              <p className="text-gray-300 mb-4">Risk Profile: {plan.risk_profile}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <div className="text-sm text-gray-400">Expected Annual Return</div>
+                  <div className="text-2xl font-bold text-green-400">{plan.expected_annual_return}%</div>
                 </div>
-                <div className="bg-green-900/20 border border-green-700 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-green-400">{plan.allocation.bonds}%</div>
-                  <div className="text-sm text-gray-400">Bonds</div>
-                  <div className="text-lg font-semibold mt-2">${plan.allocation_dollars.bonds.toLocaleString()}</div>
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <div className="text-sm text-gray-400">Portfolio Expense Ratio</div>
+                  <div className="text-2xl font-bold text-blue-400">{plan.portfolio_expense_ratio}%</div>
                 </div>
-                <div className="bg-purple-900/20 border border-purple-700 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-purple-400">{plan.allocation.cash}%</div>
-                  <div className="text-sm text-gray-400">Cash</div>
-                  <div className="text-lg font-semibold mt-2">${plan.allocation_dollars.cash.toLocaleString()}</div>
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <div className="text-sm text-gray-400">Rebalancing</div>
+                  <div className="text-2xl font-bold text-purple-400">{plan.rebalancing_frequency}</div>
                 </div>
               </div>
             </div>
 
-            {/* Specific Recommendations */}
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-              <h3 className="text-xl font-bold mb-4">What To Buy</h3>
-              <div className="space-y-4">
-                {plan.recommendations.map((rec, idx) => (
-                  <div key={idx} className="bg-gray-700/50 border border-gray-600 rounded-lg p-4">
+            {/* Warnings */}
+            {plan.warnings && plan.warnings.length > 0 && (
+              <div className="bg-yellow-900/20 border border-yellow-500/50 rounded-lg p-6">
+                <h3 className="text-xl font-bold mb-3 text-yellow-400">⚠️ Important Warnings</h3>
+                <ul className="space-y-2">
+                  {plan.warnings.map((warning, idx) => (
+                    <li key={idx} className="text-yellow-200">{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* ETF Allocations */}
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4">Your Portfolio Allocation</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {plan.target_allocation.map((etf) => (
+                  <div key={etf.ticker} className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <div className="text-lg font-bold">{rec.ticker} - {rec.name}</div>
-                        <div className="text-sm text-gray-400">{rec.category}</div>
+                        <h4 className="font-bold text-lg">{etf.ticker}</h4>
+                        <p className="text-sm text-gray-400">{etf.name}</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-green-400">${rec.dollar_amount.toLocaleString()}</div>
-                        <div className="text-sm text-gray-400">{rec.allocation_percent.toFixed(1)}% of portfolio</div>
+                        <div className="text-xl font-bold text-green-400">{etf.percentage}%</div>
+                        <div className="text-sm text-gray-400">${etf.monthly_amount}/mo</div>
                       </div>
                     </div>
-
-                    {/* Market Data Section */}
-                    {rec.market_data && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-3 p-3 bg-gray-800/50 rounded">
-                        <div>
-                          <div className="text-xs text-gray-500">Current Price</div>
-                          <div className="text-sm font-semibold">${rec.market_data.current_price.toFixed(2)}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500">1-Year Return</div>
-                          <div className={`text-sm font-semibold ${rec.market_data['1yr_return'] >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {rec.market_data['1yr_return']?.toFixed(1)}%
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500">5-Year Return</div>
-                          <div className={`text-sm font-semibold ${rec.market_data['5yr_return'] >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {rec.market_data['5yr_return']?.toFixed(1)}%
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500">Dividend Yield</div>
-                          <div className="text-sm font-semibold text-blue-400">{rec.market_data.dividend_yield.toFixed(2)}%</div>
-                        </div>
+                    <div className="text-sm text-gray-300 mb-2">{etf.category}</div>
+                    <div className="text-xs text-gray-400 mb-3">{etf.description}</div>
+                    <div className="flex justify-between text-xs">
+                      <div>
+                        <span className="text-gray-400">Price: </span>
+                        <span className="text-white">${etf.current_price}</span>
                       </div>
-                    )}
-
-                    <div className="text-sm text-gray-300 mb-2">{rec.reason}</div>
-                    <div className="text-xs text-gray-500">Expense Ratio: {rec.expense_ratio}%</div>
+                      {etf.one_year_return !== null && (
+                        <div>
+                          <span className="text-gray-400">1-Yr: </span>
+                          <span className={etf.one_year_return >= 0 ? 'text-green-400' : 'text-red-400'}>
+                            {etf.one_year_return > 0 ? '+' : ''}{etf.one_year_return}%
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-gray-400">Expense: </span>
+                        <span className="text-white">{etf.expense_ratio}%</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs">
+                      <span className="px-2 py-1 bg-gray-800 rounded text-gray-300">
+                        Risk: {etf.risk_level}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Monthly Contributions */}
-            {plan.monthly_allocation.length > 0 && (
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-4">Monthly Auto-Invest Plan</h3>
-                <div className="space-y-2">
-                  {plan.monthly_allocation.map((alloc, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-gray-700/50 border border-gray-600 rounded-lg p-3">
-                      <div>
-                        <span className="font-bold">{alloc.ticker}</span> - {alloc.name}
-                      </div>
-                      <div className="text-lg font-bold text-green-400">
-                        ${alloc.monthly_amount.toFixed(2)}/month
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Projections */}
-            <div className="bg-gradient-to-r from-green-900/20 to-blue-900/20 border border-green-700 rounded-lg p-6">
-              <h3 className="text-xl font-bold mb-4">10-Year Projection</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <div className="text-gray-400 text-sm mb-1">Starting Value</div>
-                  <div className="text-3xl font-bold">${plan.projections.current_value.toLocaleString()}</div>
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4">Projected Portfolio Value</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-green-900/30 to-green-800/30 border border-green-500/30 rounded-lg p-4">
+                  <div className="text-sm text-gray-300 mb-1">1 Year</div>
+                  <div className="text-3xl font-bold text-green-400">
+                    ${plan.projected_value_1yr.toLocaleString()}
+                  </div>
                 </div>
-                <div>
-                  <div className="text-gray-400 text-sm mb-1">Expected Value in {plan.projections.years} Years</div>
-                  <div className="text-3xl font-bold text-green-400">${plan.projections.future_value.toLocaleString()}</div>
+                <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 border border-blue-500/30 rounded-lg p-4">
+                  <div className="text-sm text-gray-300 mb-1">5 Years</div>
+                  <div className="text-3xl font-bold text-blue-400">
+                    ${plan.projected_value_5yr.toLocaleString()}
+                  </div>
                 </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Total Gain:</span>
-                  <span className="text-2xl font-bold text-green-400">${plan.projections.total_gain.toLocaleString()}</span>
-                </div>
-                <div className="text-sm text-gray-500 mt-2">
-                  Based on {plan.projections.expected_annual_return}% average annual return
+                <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/30 border border-purple-500/30 rounded-lg p-4">
+                  <div className="text-sm text-gray-300 mb-1">10 Years</div>
+                  <div className="text-3xl font-bold text-purple-400">
+                    ${plan.projected_value_10yr.toLocaleString()}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Personalized Advice */}
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-              <h3 className="text-xl font-bold mb-4">Personalized Advice</h3>
-              <ul className="space-y-2">
-                {plan.advice.map((tip, idx) => (
-                  <li key={idx} className="flex gap-2">
-                    <span className="text-yellow-400">💡</span>
-                    <span className="text-gray-300">{tip}</span>
+            {/* Reasoning */}
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4">Why This Portfolio?</h3>
+              <ul className="space-y-3">
+                {plan.reasoning.map((reason, idx) => (
+                  <li key={idx} className="flex items-start">
+                    <span className="text-green-400 mr-3">✓</span>
+                    <span className="text-gray-300">{reason}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Next Steps */}
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-6">
               <h3 className="text-xl font-bold mb-4">Next Steps</h3>
-              <ol className="space-y-2">
+              <ol className="space-y-3">
                 {plan.next_steps.map((step, idx) => (
-                  <li key={idx} className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-sm font-bold">
-                      {idx + 1}
-                    </span>
+                  <li key={idx} className="flex items-start">
+                    <span className="text-blue-400 font-bold mr-3">{idx + 1}.</span>
                     <span className="text-gray-300">{step}</span>
                   </li>
                 ))}
