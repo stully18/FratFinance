@@ -132,6 +132,8 @@ class PersonalizedPlanResult(BaseModel):
     projected_value_1yr: float
     projected_value_5yr: float
     projected_value_10yr: float
+    projected_value_20yr: float
+    projected_value_30yr: float
     expected_annual_return: float
     portfolio_expense_ratio: float
     rebalancing_frequency: str

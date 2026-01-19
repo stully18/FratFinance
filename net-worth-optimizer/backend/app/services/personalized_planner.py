@@ -172,6 +172,8 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
     projected_1yr = calculate_future_value(current_value, monthly_investment, expected_return, 1)
     projected_5yr = calculate_future_value(current_value, monthly_investment, expected_return, 5)
     projected_10yr = calculate_future_value(current_value, monthly_investment, expected_return, 10)
+    projected_20yr = calculate_future_value(current_value, monthly_investment, expected_return, 20)
+    projected_30yr = calculate_future_value(current_value, monthly_investment, expected_return, 30)
 
     # Generate reasoning
     reasoning = generate_reasoning(request, template, goal_config, expected_return)
@@ -197,6 +199,8 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
         projected_value_1yr=round(projected_1yr, 2),
         projected_value_5yr=round(projected_5yr, 2),
         projected_value_10yr=round(projected_10yr, 2),
+        projected_value_20yr=round(projected_20yr, 2),
+        projected_value_30yr=round(projected_30yr, 2),
         expected_annual_return=round(expected_return * 100, 1),
         portfolio_expense_ratio=round(total_expense_ratio, 3),
         rebalancing_frequency=template["rebalance"],

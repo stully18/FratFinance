@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Loan, LoanType, MultiLoanRequest, MultiLoanResult, MarketAssumptions } from '@/types';
+import { useFinancialData } from '../context/FinancialContext';
 
 interface VooMarketData {
   ticker: string;
@@ -16,13 +18,29 @@ interface VooMarketData {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
+  const { financialData, updateFinancialData } = useFinancialData();
   const [loans, setLoans] = useState<Loan[]>([]);
-  const [monthlyBudget, setMonthlyBudget] = useState<string>('');
+  const [monthlyBudget, setMonthlyBudget] = useState<string>(financialData.monthlyBudget.toString());
   const [result, setResult] = useState<MultiLoanResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vooData, setVooData] = useState<VooMarketData | null>(null);
   const [marketDataLoading, setMarketDataLoading] = useState(false);
+
+  // Sync monthly budget to context when it changes
+  useEffect(() => {
+    const budget = parseFloat(monthlyBudget);
+    if (!isNaN(budget) && budget > 0) {
+      updateFinancialData({ monthlyBudget: budget });
+    }
+  }, [monthlyBudget]);
+
+  // Update total debt in context when loans change
+  useEffect(() => {
+    const totalDebt = loans.reduce((sum, loan) => sum + loan.principal, 0);
+    updateFinancialData({ totalDebt });
+  }, [loans]);
 
   const addLoan = () => {
     const newLoan: Loan = {
@@ -340,7 +358,7 @@ export default function Dashboard() {
                   {result.overall_recommendation === 'pay_debts' ? '💳' : '📈'}
                 </div>
                 <h2 className="text-3xl font-bold mb-2">
-                  {result.overall_recommendation === 'pay_debts' ? 'Pay Debts First' : 'Invest in VOO'}
+                  {result.overall_recommendation === 'pay_debts' ? 'Pay Off Debt First' : 'Start Investing'}
                 </h2>
                 <div className="text-sm text-gray-400">
                   Confidence: {(result.confidence_score * 100).toFixed(0)}%
@@ -348,7 +366,7 @@ export default function Dashboard() {
               </div>
 
               <div className="bg-gray-800/50 rounded-lg p-4">
-                <h3 className="font-bold mb-2">Why This Plan?</h3>
+                <h3 className="font-bold mb-2">Why?</h3>
                 <ul className="space-y-1 text-sm">
                   {result.reasoning.map((reason, idx) => (
                     <li key={idx} className="text-gray-300">• {reason}</li>
@@ -357,67 +375,39 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Debt Priority List */}
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-              <h2 className="text-2xl font-bold mb-4">🎯 Debt Priority (Avalanche Method)</h2>
-              <div className="space-y-3">
-                {result.debt_priorities.map((debt) => (
-                  <div
-                    key={debt.priority}
-                    className={`border rounded-lg p-4 ${
-                      debt.priority === 1
-                        ? 'bg-yellow-900/30 border-yellow-600'
-                        : 'bg-gray-700/30 border-gray-600'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${
-                            debt.priority === 1
-                              ? 'bg-yellow-600 text-white'
-                              : 'bg-gray-600 text-gray-200'
-                          }`}>
-                            PRIORITY {debt.priority}
-                          </span>
-                          <span className="font-bold">{debt.loan_name}</span>
-                          <span className="text-sm text-gray-400">({getLoanTypeLabel(debt.loan_type as LoanType)})</span>
-                        </div>
-                        <div className="text-sm text-gray-300 mb-2">{debt.reason}</div>
-                        {debt.recommended_extra_payment > 0 && (
-                          <div className="text-lg font-bold text-green-400">
-                            Pay extra: ${debt.recommended_extra_payment.toFixed(0)}/month
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-red-400">{debt.guaranteed_return.toFixed(1)}%</div>
-                        <div className="text-xs text-gray-400">Interest Rate</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Investment Recommendation */}
-            {result.investment_recommendation && result.investment_recommendation.length > 0 && (
-              <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-6">
-                <h2 className="text-2xl font-bold mb-4">📊 Investment Allocation</h2>
+            {/* Debt Priority List - Only show if they have debts */}
+            {result.debt_priorities.length > 0 && (
+              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+                <h2 className="text-2xl font-bold mb-4">Debt Payoff Priority</h2>
+                <p className="text-gray-400 text-sm mb-4">Using the avalanche method (highest interest first)</p>
                 <div className="space-y-3">
-                  {result.investment_recommendation.map((alloc, idx) => (
-                    <div key={idx} className="bg-gray-800/50 rounded-lg p-4">
+                  {result.debt_priorities.map((debt) => (
+                    <div
+                      key={debt.priority}
+                      className={`border rounded-lg p-4 ${
+                        debt.priority === 1
+                          ? 'bg-yellow-900/30 border-yellow-600'
+                          : 'bg-gray-700/30 border-gray-600'
+                      }`}
+                    >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold text-lg">{alloc.ticker}</span>
-                            <span className="text-gray-400">- {alloc.name}</span>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              debt.priority === 1
+                                ? 'bg-yellow-600 text-white'
+                                : 'bg-gray-600 text-gray-200'
+                            }`}>
+                              #{debt.priority}
+                            </span>
+                            <span className="font-bold">{debt.loan_name}</span>
+                            <span className="text-sm text-gray-400">({getLoanTypeLabel(debt.loan_type as LoanType)})</span>
                           </div>
-                          <div className="text-sm text-gray-300 mb-2">{alloc.description}</div>
+                          <div className="text-sm text-gray-300">{debt.reason}</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-green-400">${alloc.monthly_amount.toFixed(2)}</div>
-                          <div className="text-sm text-gray-400">{alloc.percentage.toFixed(0)}% allocation</div>
+                          <div className="text-2xl font-bold text-red-400">{debt.guaranteed_return.toFixed(1)}%</div>
+                          <div className="text-xs text-gray-400">Interest Rate</div>
                         </div>
                       </div>
                     </div>
@@ -426,84 +416,34 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Educational Resources */}
-            <div className="bg-purple-900/20 border border-purple-700 rounded-lg p-6">
-              <h2 className="text-2xl font-bold mb-4">📚 Learn More</h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-gray-800/50 rounded-lg p-4">
-                  <h3 className="font-bold mb-2 text-green-400">What is VOO?</h3>
-                  <p className="text-sm text-gray-300 mb-2">
-                    VOO is Vanguard's S&P 500 ETF - it tracks the 500 largest US companies (Apple, Microsoft, Amazon, etc.)
-                  </p>
-                  <ul className="text-xs text-gray-400 space-y-1">
-                    <li>• Historical return: ~10% annually</li>
-                    <li>• Expense ratio: 0.03% (very low)</li>
-                    <li>• Diversified across all major sectors</li>
-                  </ul>
+            {/* CTA to Personalized Plan - More prominent */}
+            <div className="bg-gradient-to-r from-green-900/40 to-blue-900/40 border-2 border-green-500/50 rounded-lg p-8">
+              <div className="text-center">
+                <div className="text-4xl mb-4">
+                  {result.overall_recommendation === 'invest' ? '🚀' : '📊'}
                 </div>
-
-                <div className="bg-gray-800/50 rounded-lg p-4">
-                  <h3 className="font-bold mb-2 text-blue-400">Debt Avalanche Method</h3>
-                  <p className="text-sm text-gray-300 mb-2">
-                    Pay off debts in order of highest to lowest interest rate
-                  </p>
-                  <ul className="text-xs text-gray-400 space-y-1">
-                    <li>• Saves the most money on interest</li>
-                    <li>• Mathematically optimal strategy</li>
-                    <li>• Always pay minimums on all debts</li>
-                  </ul>
-                </div>
-
-                <div className="bg-gray-800/50 rounded-lg p-4">
-                  <h3 className="font-bold mb-2 text-yellow-400">Where to Invest</h3>
-                  <p className="text-sm text-gray-300 mb-2">
-                    Open a brokerage account (free and easy)
-                  </p>
-                  <ul className="text-xs text-gray-400 space-y-1">
-                    <li>• Fidelity, Vanguard, or Schwab</li>
-                    <li>• No minimum investment required</li>
-                    <li>• Buy VOO directly (commission-free)</li>
-                  </ul>
-                </div>
-
-                <div className="bg-gray-800/50 rounded-lg p-4">
-                  <h3 className="font-bold mb-2 text-red-400">Key Principles</h3>
-                  <ul className="text-sm text-gray-300 space-y-1">
-                    <li>• Time in market > timing the market</li>
-                    <li>• Don't check daily - invest long-term</li>
-                    <li>• Dollar-cost average (invest monthly)</li>
-                    <li>• Keep investing during market drops</li>
-                  </ul>
-                </div>
+                <h3 className="text-2xl font-bold mb-3">
+                  {result.overall_recommendation === 'invest'
+                    ? "Now Let's Build Your Investment Plan"
+                    : "Plan Your Investment Strategy"}
+                </h3>
+                <p className="text-gray-300 mb-6 max-w-lg mx-auto">
+                  {result.overall_recommendation === 'invest'
+                    ? "Get a personalized portfolio with ETF allocations and see your projected wealth growth over 10, 20, and 30 years."
+                    : "Once your high-interest debt is paid off, you'll want an investment plan ready. Set one up now based on your risk tolerance."}
+                </p>
+                <button
+                  onClick={() => router.push('/plan')}
+                  className="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-lg font-bold text-lg transition-all"
+                >
+                  Create My Investment Plan →
+                </button>
               </div>
+            </div>
 
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <h3 className="font-bold mb-3 text-purple-400">📖 Recommended Resources</h3>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="text-gray-400">Book:</span>
-                    <span className="ml-2 text-white">"The Simple Path to Wealth" by JL Collins</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">YouTube:</span>
-                    <span className="ml-2 text-white">The Plain Bagel, Graham Stephan (for beginners)</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Reddit:</span>
-                    <span className="ml-2 text-white">r/personalfinance, r/Bogleheads (index investing)</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Calculator:</span>
-                    <span className="ml-2 text-white">unbury.me (debt payoff visualizer)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-200">
-                <strong>Remember:</strong> This tool provides mathematical guidance, not financial advice.
-                Consider your personal situation, emergency fund needs, and risk tolerance.
-              </div>
+            {/* Disclaimer */}
+            <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-200 text-center">
+              <strong>Note:</strong> This provides mathematical guidance, not financial advice. Consider your emergency fund and personal situation.
             </div>
           </div>
         )}

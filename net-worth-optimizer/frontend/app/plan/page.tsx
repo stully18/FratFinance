@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useFinancialData } from '../context/FinancialContext';
 
 interface ETFAllocation {
   ticker: string;
@@ -24,6 +25,8 @@ interface PersonalizedPlanResult {
   projected_value_1yr: number;
   projected_value_5yr: number;
   projected_value_10yr: number;
+  projected_value_20yr: number;
+  projected_value_30yr: number;
   expected_annual_return: number;
   portfolio_expense_ratio: number;
   rebalancing_frequency: string;
@@ -33,21 +36,45 @@ interface PersonalizedPlanResult {
 }
 
 export default function PersonalizedPlanPage() {
+  const { financialData, updateFinancialData } = useFinancialData();
+
   const [formData, setFormData] = useState({
-    monthly_investment_amount: 500,
-    risk_tolerance: 'moderate',
-    financial_goal: 'wealth_building',
-    time_horizon_years: 10,
-    current_savings: 5000,
-    has_emergency_fund: true
+    monthly_investment_amount: financialData.monthlyBudget,
+    risk_tolerance: financialData.riskTolerance,
+    financial_goal: financialData.financialGoal,
+    time_horizon_years: financialData.timeHorizon,
+    current_savings: financialData.currentSavings,
+    has_emergency_fund: financialData.hasEmergencyFund
   });
 
   const [plan, setPlan] = useState<PersonalizedPlanResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoGenerate, setAutoGenerate] = useState(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Auto-generate plan on first load if coming from dashboard with data
+  useEffect(() => {
+    if (autoGenerate && financialData.monthlyBudget > 0) {
+      setAutoGenerate(false);
+      handleSubmit();
+    }
+  }, []);
+
+  // Update form when context changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      monthly_investment_amount: financialData.monthlyBudget,
+      current_savings: financialData.currentSavings,
+      has_emergency_fund: financialData.hasEmergencyFund,
+      risk_tolerance: financialData.riskTolerance,
+      financial_goal: financialData.financialGoal,
+      time_horizon_years: financialData.timeHorizon,
+    }));
+  }, [financialData]);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
     setError(null);
 
@@ -66,6 +93,16 @@ export default function PersonalizedPlanPage() {
 
       const data = await response.json();
       setPlan(data);
+
+      // Sync form data back to context
+      updateFinancialData({
+        monthlyBudget: formData.monthly_investment_amount,
+        currentSavings: formData.current_savings,
+        hasEmergencyFund: formData.has_emergency_fund,
+        riskTolerance: formData.risk_tolerance as any,
+        financialGoal: formData.financial_goal as any,
+        timeHorizon: formData.time_horizon_years,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -89,12 +126,12 @@ export default function PersonalizedPlanPage() {
           Personalized Investment Plan
         </h1>
         <p className="text-gray-400 mb-8">
-          Get a customized portfolio based on your financial goals, risk tolerance, and market data
+          Get a customized portfolio based on your financial goals, risk tolerance, and real market data
         </p>
 
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Monthly Investment Amount */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -135,6 +172,23 @@ export default function PersonalizedPlanPage() {
               </div>
             </div>
 
+            {/* Time Horizon */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Time Horizon (Years)
+              </label>
+              <input
+                type="number"
+                name="time_horizon_years"
+                value={formData.time_horizon_years}
+                onChange={handleChange}
+                min="1"
+                max="50"
+                className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                required
+              />
+            </div>
+
             {/* Risk Tolerance */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -170,25 +224,8 @@ export default function PersonalizedPlanPage() {
               </select>
             </div>
 
-            {/* Time Horizon */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Time Horizon (Years)
-              </label>
-              <input
-                type="number"
-                name="time_horizon_years"
-                value={formData.time_horizon_years}
-                onChange={handleChange}
-                min="1"
-                max="50"
-                className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                required
-              />
-            </div>
-
             {/* Emergency Fund */}
-            <div className="flex items-center">
+            <div className="flex items-center pt-8">
               <input
                 type="checkbox"
                 name="has_emergency_fund"
@@ -244,10 +281,13 @@ export default function PersonalizedPlanPage() {
             {/* Warnings */}
             {plan.warnings && plan.warnings.length > 0 && (
               <div className="bg-yellow-900/20 border border-yellow-500/50 rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-3 text-yellow-400">⚠️ Important Warnings</h3>
+                <h3 className="text-xl font-bold mb-3 text-yellow-400">Important Warnings</h3>
                 <ul className="space-y-2">
                   {plan.warnings.map((warning, idx) => (
-                    <li key={idx} className="text-yellow-200">{warning}</li>
+                    <li key={idx} className="text-yellow-200 flex items-start">
+                      <span className="mr-2">⚠️</span>
+                      {warning}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -258,7 +298,7 @@ export default function PersonalizedPlanPage() {
               <h3 className="text-xl font-bold mb-4">Your Portfolio Allocation</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {plan.target_allocation.map((etf) => (
-                  <div key={etf.ticker} className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                  <div key={etf.ticker} className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 hover:border-green-500/50 transition-colors">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h4 className="font-bold text-lg">{etf.ticker}</h4>
@@ -299,29 +339,44 @@ export default function PersonalizedPlanPage() {
               </div>
             </div>
 
-            {/* Projections */}
+            {/* Projections - Extended */}
             <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-6">
               <h3 className="text-xl font-bold mb-4">Projected Portfolio Value</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="bg-gradient-to-br from-green-900/30 to-green-800/30 border border-green-500/30 rounded-lg p-4">
                   <div className="text-sm text-gray-300 mb-1">1 Year</div>
-                  <div className="text-3xl font-bold text-green-400">
+                  <div className="text-2xl font-bold text-green-400">
                     ${plan.projected_value_1yr.toLocaleString()}
                   </div>
                 </div>
-                <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 border border-blue-500/30 rounded-lg p-4">
+                <div className="bg-gradient-to-br from-teal-900/30 to-teal-800/30 border border-teal-500/30 rounded-lg p-4">
                   <div className="text-sm text-gray-300 mb-1">5 Years</div>
-                  <div className="text-3xl font-bold text-blue-400">
+                  <div className="text-2xl font-bold text-teal-400">
                     ${plan.projected_value_5yr.toLocaleString()}
                   </div>
                 </div>
-                <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/30 border border-purple-500/30 rounded-lg p-4">
+                <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 border border-blue-500/30 rounded-lg p-4">
                   <div className="text-sm text-gray-300 mb-1">10 Years</div>
-                  <div className="text-3xl font-bold text-purple-400">
+                  <div className="text-2xl font-bold text-blue-400">
                     ${plan.projected_value_10yr.toLocaleString()}
                   </div>
                 </div>
+                <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/30 border border-purple-500/30 rounded-lg p-4">
+                  <div className="text-sm text-gray-300 mb-1">20 Years</div>
+                  <div className="text-2xl font-bold text-purple-400">
+                    ${plan.projected_value_20yr.toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-pink-900/30 to-pink-800/30 border border-pink-500/30 rounded-lg p-4">
+                  <div className="text-sm text-gray-300 mb-1">30 Years</div>
+                  <div className="text-2xl font-bold text-pink-400">
+                    ${plan.projected_value_30yr.toLocaleString()}
+                  </div>
+                </div>
               </div>
+              <p className="text-xs text-gray-500 mt-4">
+                * Projections assume consistent monthly contributions and historical average returns. Actual results may vary.
+              </p>
             </div>
 
             {/* Reasoning */}
