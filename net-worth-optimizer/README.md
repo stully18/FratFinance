@@ -26,12 +26,14 @@ This app solves that by comparing:
 - **FastAPI**: Python web framework for the API
 - **NumPy**: Financial calculations and optimization engine
 - **Pydantic**: Data validation
+- **Supabase**: PostgreSQL database and authentication
 
 ### Frontend
 - **Next.js 14**: React framework with App Router
 - **TypeScript**: Type-safe development
 - **Tailwind CSS**: Modern, dark-mode UI
 - **Chart.js**: Interactive data visualizations
+- **Supabase JS Client**: Authentication and real-time database access
 
 ## Getting Started
 
@@ -90,17 +92,79 @@ npm run dev
 
 The frontend will start at `http://localhost:3000`
 
+## User Accounts & Authentication
+
+FratFinance now includes **secure user authentication** powered by Supabase. Users can create accounts, sign in securely, and manage their financial plans.
+
+### Authentication Features
+
+- **Sign Up**: Create account with email and password
+- **Sign In**: Secure login with encrypted sessions
+- **Protected Pages**: Dashboard, Settings, and financial data only accessible to authenticated users
+- **Profile Management**: Update full name and password
+- **Session Persistence**: Stay logged in across page refreshes
+- **Security**: Industry-standard JWT tokens and RLS database policies
+
+### Getting Started with Authentication
+
+#### 1. Set Up Supabase
+
+Before running the app, create a Supabase project:
+
+1. Go to [https://supabase.com](https://supabase.com)
+2. Create a new project and note the Project URL and Anon Key
+3. Enable "Email Auth" in Authentication > Providers
+
+#### 2. Configure Environment Variables
+
+**Backend** (`backend/.env`):
+```
+SUPABASE_URL=https://[your-project].supabase.co
+SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
+```
+
+**Frontend** (`frontend/.env.local`):
+```
+NEXT_PUBLIC_SUPABASE_URL=https://[your-project].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
+```
+
+#### 3. Test Authentication
+
+Once running, test the authentication flow:
+
+1. Go to `http://localhost:3000/auth/signup`
+2. Create an account (or skip email verification in dev)
+3. Sign in with your credentials
+4. Access protected pages like Dashboard and Settings
+5. See the comprehensive testing guide: `docs/AUTHENTICATION-TESTING-GUIDE.md`
+
+### Authentication Documentation
+
+- **[AUTHENTICATION-TESTING-GUIDE.md](docs/AUTHENTICATION-TESTING-GUIDE.md)** - Complete testing procedures for all auth flows (10 test scenarios with expected results)
+- **[AUTHENTICATION-IMPLEMENTATION-SUMMARY.md](docs/AUTHENTICATION-IMPLEMENTATION-SUMMARY.md)** - Technical architecture, file descriptions, and security features
+
 ### Usage
 
-1. Open your browser to `http://localhost:3000`
-2. Enter your loan details:
+#### First Time Users
+
+1. Go to `http://localhost:3000/auth/signup`
+2. Create your account with email and password
+3. Verify your email (or skip in development)
+4. Sign in with your credentials
+
+#### Using the App
+
+1. After logging in, you're on the Dashboard
+2. Use the Calculator to analyze your debt vs. investing scenarios:
    - Principal amount
    - Interest rate
    - Minimum monthly payment
    - Monthly spare cash
    - Months until graduation
-3. Click "Optimize My Money"
-4. View your personalized recommendation and projections
+3. Get your personalized recommendation with projected outcomes
+4. Save your financial plans (only available to logged-in users)
+5. Update your profile in Settings
 
 ## Example Scenarios
 
@@ -187,17 +251,29 @@ Response:
 - [x] Basic debt vs. invest comparison
 - [x] Single loan support
 - [x] Fixed market assumptions
+- [x] User authentication system
+- [x] Profile management
+- [x] Plan saving and history
 
-### Phase 2 (ML Integration)
+### Phase 2 (Enhanced Auth)
+- [ ] Social login (Google, GitHub OAuth)
+- [ ] Password reset via email
+- [ ] Two-factor authentication (2FA)
+- [ ] Login history and device management
+- [ ] Admin dashboard for user management
+
+### Phase 3 (ML Integration)
 - [ ] Machine learning model for market forecasting
 - [ ] Dynamic risk adjustment based on graduation timeline
 - [ ] Volatility predictions
+- [ ] Personalized recommendations based on user history
 
-### Phase 3 (Advanced Features)
+### Phase 4 (Advanced Features)
 - [ ] Multiple loan support
 - [ ] Semester-based cash flow predictions
 - [ ] Social comparison (peer benchmarking)
-- [ ] User accounts and history tracking
+- [ ] Bank integration via Plaid for automatic data import
+- [ ] Mobile app (iOS/Android)
 
 ## Contributing
 
