@@ -15,6 +15,9 @@ ALTER TABLE users_public ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can read own data" ON users_public
   FOR SELECT USING (auth.uid() = id);
 
+CREATE POLICY "Users can insert own profile during signup" ON users_public
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
 CREATE POLICY "Users can update own data" ON users_public
   FOR UPDATE USING (auth.uid() = id);
 
@@ -56,7 +59,7 @@ CREATE TABLE plaid_accounts (
   plaid_item_id TEXT NOT NULL,
   account_name TEXT,
   account_type TEXT,  -- 'checking', 'savings', 'credit', etc.
-  plaid_access_token TEXT NOT NULL ENCRYPTED,  -- Store encrypted
+  plaid_access_token TEXT NOT NULL,  -- Store encrypted
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT plaid_accounts_user_id_item_id UNIQUE(user_id, plaid_item_id)
 );

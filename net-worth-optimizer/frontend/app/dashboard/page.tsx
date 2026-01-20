@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Loan, LoanType, MultiLoanRequest, MultiLoanResult, MarketAssumptions } from '@/types';
 import { useFinancialData } from '../context/FinancialContext';
+import { useAuth } from '../context/AuthContext';
 
 interface VooMarketData {
   ticker: string;
@@ -19,6 +20,7 @@ interface VooMarketData {
 
 export default function Dashboard() {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const { financialData, updateFinancialData } = useFinancialData();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [monthlyBudget, setMonthlyBudget] = useState<string>(financialData.monthlyBudget.toString());
@@ -27,6 +29,13 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [vooData, setVooData] = useState<VooMarketData | null>(null);
   const [marketDataLoading, setMarketDataLoading] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [user, authLoading, router]);
 
   // Sync monthly budget to context when it changes
   useEffect(() => {
@@ -143,6 +152,23 @@ export default function Dashboard() {
 
     fetchMarketData();
   }, []);
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400"></div>
+          <p className="text-slate-400 mt-4">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render dashboard if not authenticated (redirect happens in useEffect)
+  if (!user) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">

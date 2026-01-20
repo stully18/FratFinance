@@ -15,7 +15,7 @@ interface SignInData {
 
 export async function signUp({ email, password, fullName }: SignUpData) {
   try {
-    // Sign up user
+    // Sign up user - the trigger will automatically create the users_public entry
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -25,19 +25,6 @@ export async function signUp({ email, password, fullName }: SignUpData) {
     })
 
     if (authError) throw authError
-
-    // Create user profile
-    if (authData.user) {
-      const { error: profileError } = await supabase
-        .from('users_public')
-        .insert([{
-          id: authData.user.id,
-          email,
-          full_name: fullName
-        }])
-
-      if (profileError) throw profileError
-    }
 
     return { user: authData.user, error: null }
   } catch (error) {

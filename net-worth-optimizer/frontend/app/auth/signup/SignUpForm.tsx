@@ -131,7 +131,7 @@ export default function SignUpForm() {
       }
 
       if (result.user) {
-        router.push('/auth/verify-email')
+        router.push('/dashboard')
       }
     } catch (err) {
       setErrors({
