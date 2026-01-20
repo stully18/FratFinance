@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -7,6 +7,8 @@ from app.models.schemas import OptimizationRequest, OptimizationResult, MultiLoa
 from app.services import plaid_service
 from app.services import investment_planner
 from app.services import multi_loan_optimizer
+from app.middleware.auth import verify_user_token
+from app.services.user_service import save_financial_plan, get_user_plans, delete_plan
 
 app = FastAPI(
     title="Net Worth Optimizer API",
@@ -595,3 +597,31 @@ async def generate_financial_plan(request: PersonalizedPlanRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============= User-Scoped Data Endpoints =============
+
+@app.post("/api/plans/save")
+async def save_plan(
+    request: Request,
+    user_id: str = Depends(verify_user_token)
+):
+    """Save a financial plan"""
+    body = await request.json()
+    result = await save_financial_plan(user_id, body["plan_name"], body["plan_type"], body["data"])
+    return {"success": True, "data": result}
+
+@app.get("/api/plans")
+async def list_plans(user_id: str = Depends(verify_user_token)):
+    """Get all user's saved plans"""
+    plans = await get_user_plans(user_id)
+    return {"plans": plans}
+
+@app.delete("/api/plans/{plan_name}")
+async def delete_plan_endpoint(
+    plan_name: str,
+    user_id: str = Depends(verify_user_token)
+):
+    """Delete a saved plan"""
+    result = await delete_plan(user_id, plan_name)
+    return result
