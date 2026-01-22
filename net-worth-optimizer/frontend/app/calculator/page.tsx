@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../context/AuthContext';
 import InputForm from '@/components/InputForm';
 import RecommendationCard from '@/components/RecommendationCard';
 import ResultsVisualization from '@/components/ResultsVisualization';
@@ -9,9 +11,18 @@ import { optimizeFinancialPath } from '@/lib/api';
 import { OptimizationRequest, OptimizationResult } from '@/types';
 
 export default function Home() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect to login only AFTER auth finishes loading and there's truly no user
+  useEffect(() => {
+    if (authLoading === false && user === null) {
+      router.push('/auth/login');
+    }
+  }, [user, authLoading, router]);
 
   const handleOptimize = async (request: OptimizationRequest) => {
     setIsLoading(true);
@@ -27,6 +38,18 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking authentication, or if not authenticated
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400"></div>
+          <p className="text-slate-400 mt-4">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">

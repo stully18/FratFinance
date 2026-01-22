@@ -30,9 +30,13 @@ export default function Dashboard() {
   const [vooData, setVooData] = useState<VooMarketData | null>(null);
   const [marketDataLoading, setMarketDataLoading] = useState(false);
 
-  // Redirect to login if not authenticated
+  // Redirect to login only AFTER auth finishes loading and there's truly no user
   useEffect(() => {
-    if (!authLoading && !user) {
+    console.log('[Dashboard] Auth state:', { authLoading, user: user?.email, timestamp: new Date().toISOString() })
+    // ONLY redirect if we've finished loading AND there's no user
+    // Don't redirect during loading - let the page show loading spinner
+    if (authLoading === false && user === null) {
+      console.log('[Dashboard] Auth complete with no user, redirecting to login')
       router.push('/auth/login');
     }
   }, [user, authLoading, router]);
@@ -153,8 +157,8 @@ export default function Dashboard() {
     fetchMarketData();
   }, []);
 
-  // Show loading while checking authentication
-  if (authLoading) {
+  // Show loading while checking authentication, or if not authenticated
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -163,11 +167,6 @@ export default function Dashboard() {
         </div>
       </div>
     )
-  }
-
-  // Don't render dashboard if not authenticated (redirect happens in useEffect)
-  if (!user) {
-    return null
   }
 
   return (

@@ -1,51 +1,21 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
-// Routes that require authentication
-const protectedRoutes = [
-  '/dashboard',
-  '/plan',
-  '/investments',
-  '/calculator',
-  '/roth-ira',
-  '/settings',
-  '/profile'
-]
-
-// Routes for unauthenticated users only
-const authRoutes = [
-  '/auth/login',
-  '/auth/signup',
-  '/auth/forgot-password'
-]
+// Auth is now handled client-side in AuthContext and page components
+// This middleware was checking for cookies that Supabase v2 doesn't use
+// Supabase v2 stores auth in localStorage on the client, not server cookies
+// Disabling middleware-based auth checks to avoid conflicts
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // Get session from cookies (Supabase auth)
-  const session = request.cookies.get('sb-auth-token')
-
-  // If accessing protected route without session
-  if (protectedRoutes.some(route => pathname.startsWith(route))) {
-    if (!session) {
-      // Redirect to login with return path
-      const loginUrl = new URL('/auth/login', request.url)
-      loginUrl.searchParams.set('redirectTo', pathname)
-      return NextResponse.redirect(loginUrl)
-    }
-  }
-
-  // If accessing auth routes with session, redirect to dashboard
-  if (authRoutes.some(route => pathname.startsWith(route))) {
-    if (session) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-  }
-
+  // All auth checks are now handled client-side in:
+  // - AuthContext (initializes auth state)
+  // - Individual page components (redirect if not authenticated)
+  // This prevents double-redirects and race conditions
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
+    // Apply to all routes except static files and images
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
@@ -11,6 +12,16 @@ export default function LoginForm() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { user } = useAuth()
+  const [shouldRedirect, setShouldRedirect] = useState(false)
+
+  // Redirect to dashboard once auth state is updated after login
+  useEffect(() => {
+    if (shouldRedirect && user) {
+      console.log('[LoginForm] Auth state updated with user, redirecting to dashboard')
+      router.push('/dashboard')
+    }
+  }, [shouldRedirect, user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,8 +43,11 @@ export default function LoginForm() {
         return
       }
 
-      if (result.user) {
-        router.push('/dashboard')
+      if (result.user && result.session) {
+        // Login successful - wait for AuthContext listener to update user state
+        // before redirecting to dashboard
+        console.log('[LoginForm] Sign in successful, waiting for auth state update')
+        setShouldRedirect(true)
       }
     } catch (err) {
       setError('An unexpected error occurred')

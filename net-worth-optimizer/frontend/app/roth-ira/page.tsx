@@ -1,12 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../context/AuthContext';
 
 export default function RothIRAPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [age, setAge] = useState(20);
   const [annualContribution, setAnnualContribution] = useState(7500);
   const [yearsToRetirement, setYearsToRetirement] = useState(45);
   const [expectedReturn, setExpectedReturn] = useState(10);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [user, authLoading, router]);
 
   // Calculate Roth IRA growth
   const calculateGrowth = () => {
@@ -30,6 +41,18 @@ export default function RothIRAPage() {
 
   // Calculate tax savings (assuming 24% tax bracket)
   const taxSavings = Math.round(results.taxFreeGains * 0.24);
+
+  // Show loading while checking authentication, or if not authenticated
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400"></div>
+          <p className="text-slate-400 mt-4">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">

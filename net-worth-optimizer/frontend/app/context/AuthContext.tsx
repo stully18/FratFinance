@@ -19,23 +19,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setIsLoading(false)
-    })
+    let isMounted = true
+    let loadingDone = false
 
-    // Listen for auth changes
+    // Set up listener FIRST before checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        setIsLoading(false)
+      (event, session) => {
+        if (isMounted) {
+          console.log('[AuthContext] Auth state changed:', event, session?.user?.email)
+          setSession(session)
+          setUser(session?.user ?? null)
+          if (!loadingDone) {
+            loadingDone = true
+            setIsLoading(false)
+          }
+        }
       }
     )
 
-    return () => subscription?.unsubscribe()
+    // Check for existing session AND wait for it before marking loading as done
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (isMounted) {
+          console.log('[AuthContext] Initial session check:', session?.user?.email)
+          setSession(session)
+          setUser(session?.user ?? null)
+          if (!loadingDone) {
+            loadingDone = true
+            setIsLoading(false)
+          }
+        }
+      } catch (error) {
+        console.error('[AuthContext] Error checking session:', error)
+        if (isMounted && !loadingDone) {
+          loadingDone = true
+          setIsLoading(false)
+        }
+      }
+    }
+
+    checkSession()
+
+    return () => {
+      isMounted = false
+      subscription?.unsubscribe()
+    }
   }, [])
 
   const signOut = async () => {

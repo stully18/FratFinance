@@ -35,6 +35,29 @@ This app solves that by comparing:
 - **Chart.js**: Interactive data visualizations
 - **Supabase JS Client**: Authentication and real-time database access
 
+## Architecture
+
+Here's a high-level overview of the application's architecture:
+
+```mermaid
+graph TD
+    subgraph "User's Browser"
+        A[Frontend: Next.js, TypeScript, Tailwind CSS]
+    end
+
+    subgraph "Cloud Infrastructure"
+        B[Backend: FastAPI, Python, NumPy]
+        C[Database & Auth: Supabase]
+    end
+
+    A -- "API Calls (HTTPS)" --> B
+    B -- "Data & Auth Queries (SQL/SDK)" --> C
+
+    style A fill:#000,stroke:#61DAFB,stroke-width:2px,color:#fff
+    style B fill:#000,stroke:#009688,stroke-width:2px,color:#fff
+    style C fill:#000,stroke:#3ecf8e,stroke-width:2px,color:#fff
+```
+
 ## Getting Started
 
 ### Prerequisites

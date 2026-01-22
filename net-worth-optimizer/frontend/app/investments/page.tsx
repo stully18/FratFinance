@@ -1,12 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../context/AuthContext';
 import PlaidInvestmentButton from '@/components/PlaidInvestmentButton';
 import InvestmentDashboard from '@/components/InvestmentDashboard';
 
 export default function InvestmentsPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  // Redirect to login only AFTER auth finishes loading and there's truly no user
+  useEffect(() => {
+    if (authLoading === false && user === null) {
+      router.push('/auth/login');
+    }
+  }, [user, authLoading, router]);
 
   const handleInvestmentConnection = async (publicToken: string) => {
     try {
@@ -25,6 +36,18 @@ export default function InvestmentsPage() {
       alert('Failed to connect investment account. Please try again.');
     }
   };
+
+  // Show loading while checking authentication, or if not authenticated
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400"></div>
+          <p className="text-slate-400 mt-4">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">
