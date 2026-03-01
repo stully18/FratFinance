@@ -106,6 +106,7 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
     Returns:
         Detailed investment plan with real ETF data and projections
     """
+    print(f"[DEBUG] Generating personalized plan: ${request.monthly_investment_amount}/mo, {request.risk_tolerance.value} risk, {request.financial_goal.value} goal")
 
     # Get base portfolio template
     template = PORTFOLIO_TEMPLATES[request.risk_tolerance]
@@ -123,7 +124,13 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
     total = sum(allocation.values())
     allocation = {k: (v / total) * 100 for k, v in allocation.items()}
 
-    # Fetch real market data for each ETF
+    # Get list of tickers with positive allocation
+    active_tickers = [t for t, pct in allocation.items() if pct > 0]
+
+    # Fetch all ETF data in a single batch request (avoids rate limiting)
+    all_etf_data = market_data_fetcher.get_multiple_etf_data(active_tickers)
+
+    # Build ETF allocations from cached data
     etf_allocations = []
     total_expense_ratio = 0.0
 
@@ -131,8 +138,8 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
         if percentage <= 0:
             continue
 
-        # Get market data
-        etf_data = market_data_fetcher.get_etf_details(ticker)
+        # Get market data from batch result
+        etf_data = all_etf_data.get(ticker, market_data_fetcher.get_demo_etf_data(ticker))
         monthly_amount = (percentage / 100) * request.monthly_investment_amount
 
         # Get ETF metadata
@@ -191,7 +198,7 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
         if pct > 0
     }
 
-    return PersonalizedPlanResult(
+    result = PersonalizedPlanResult(
         portfolio_name=template["name"],
         risk_profile=request.risk_tolerance.value.title(),
         target_allocation=etf_allocations,
@@ -208,6 +215,9 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
         next_steps=next_steps,
         warnings=warnings
     )
+
+    print(f"[DEBUG] Plan generated: {template['name']}, {len(etf_allocations)} ETFs, {expected_return * 100:.1f}% expected return")
+    return result
 
 
 def calculate_future_value(current: float, monthly: float, annual_return: float, years: int) -> float:
