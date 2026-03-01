@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../context/AuthContext';
+import Link from 'next/link';
+import { useAuth } from '../../context/AuthContext';
 
 export default function RothIRAPage() {
   const router = useRouter();
@@ -57,17 +58,17 @@ export default function RothIRAPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Back Button */}
+        {/* Back to Tools */}
         <div className="mb-6">
-          <a
-            href="/"
+          <Link
+            href="/tools"
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors w-fit"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back to Home
-          </a>
+            Back to Tools
+          </Link>
         </div>
 
         <h1 className="text-4xl font-bold mb-2">Why Roth IRA is a Superpower for College Students</h1>
@@ -249,9 +250,9 @@ export default function RothIRAPage() {
             <div className="flex gap-4">
               <div className="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center font-bold">4</div>
               <div>
-                <h4 className="font-bold mb-1">Withdraw Tax-Free at Retirement (59½)</h4>
+                <h4 className="font-bold mb-1">Withdraw Tax-Free at Retirement (59 1/2)</h4>
                 <p className="text-gray-400 text-sm">
-                  After age 59½, withdraw it all tax-free. Your $315,000 (from example above) becomes $315,000 in your pocket, not $239,400.
+                  After age 59 1/2, withdraw it all tax-free. Your $315,000 (from example above) becomes $315,000 in your pocket, not $239,400.
                 </p>
               </div>
             </div>
@@ -267,7 +268,7 @@ export default function RothIRAPage() {
               <h4 className="font-bold mb-2 text-blue-400">Can I withdraw my money if I need it?</h4>
               <p className="text-gray-300 text-sm">
                 Yes! You can withdraw your <strong>contributions</strong> (not gains) anytime, tax and penalty-free.
-                If you contribute $7,000 this year, you can take that $7,000 out later if needed. The gains must stay until 59½.
+                If you contribute $7,000 this year, you can take that $7,000 out later if needed. The gains must stay until 59 1/2.
               </p>
             </div>
 
@@ -282,7 +283,7 @@ export default function RothIRAPage() {
               <h4 className="font-bold mb-2 text-blue-400">Which is better: Roth IRA or 401(k)?</h4>
               <p className="text-gray-300 text-sm">
                 Do <strong>both</strong> if you can. 401(k) gets company match (free money). Roth IRA has more investment options and tax-free withdrawals.
-                Priority: 401(k) to match → Roth IRA max → More 401(k).
+                Priority: 401(k) to match, then Roth IRA max, then more 401(k).
               </p>
             </div>
 

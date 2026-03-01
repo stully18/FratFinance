@@ -8,35 +8,40 @@ export default function Home() {
             College Wealth Builder
           </h1>
           <p className="text-2xl text-gray-300 mb-3">
-            Smart debt payoff vs investing optimizer for students
+            Financial tools built for students and new grads
           </p>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            Add your loans, see which debts to tackle first, and get personalized recommendations on whether to pay debt or invest in VOO
+            Optimize your debt payoff, maximize your 401(k) match, and build a personalized investment strategy
           </p>
         </div>
 
         <a
-          href="/dashboard"
+          href="/tools"
           className="inline-block px-12 py-5 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-xl text-2xl font-bold transition-all transform hover:scale-105 shadow-lg"
         >
-          Get Started →
+          Get Started
         </a>
 
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-            <div className="text-4xl mb-3">📊</div>
-            <div className="font-bold text-lg mb-2">Multiple Loans</div>
-            <div className="text-sm text-gray-400">Student loans, car loans, credit cards - add them all</div>
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-5">
+            <div className="text-3xl mb-2">💳</div>
+            <div className="font-bold mb-1">Debt Optimizer</div>
+            <div className="text-xs text-gray-400">Pay debt or invest?</div>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-            <div className="text-4xl mb-3">🎯</div>
-            <div className="font-bold text-lg mb-2">Smart Priorities</div>
-            <div className="text-sm text-gray-400">Debt avalanche method - highest interest rate first</div>
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-5">
+            <div className="text-3xl mb-2">🏦</div>
+            <div className="font-bold mb-1">401(k) Calculator</div>
+            <div className="text-xs text-gray-400">Max your match</div>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-            <div className="text-4xl mb-3">📈</div>
-            <div className="font-bold text-lg mb-2">VOO vs Debt</div>
-            <div className="text-sm text-gray-400">Compare guaranteed debt returns vs S&P 500 investing</div>
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-5">
+            <div className="text-3xl mb-2">🛡️</div>
+            <div className="font-bold mb-1">Roth IRA</div>
+            <div className="text-xs text-gray-400">Tax-free growth</div>
+          </div>
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-5">
+            <div className="text-3xl mb-2">📊</div>
+            <div className="font-bold mb-1">Investment Plan</div>
+            <div className="text-xs text-gray-400">Build your portfolio</div>
           </div>
         </div>
 

@@ -3,11 +3,37 @@ Real Market Data Fetcher
 
 Fetches live market data for ETFs (VOO, VXUS, BND, SPY, etc.)
 Uses yfinance library for reliable Yahoo Finance data
+Includes caching to avoid rate limiting (429 errors)
 """
 
 import yfinance as yf
-from typing import Dict
+from typing import Dict, Optional
 from datetime import datetime, timedelta
+import threading
+
+# Simple in-memory cache with TTL
+_cache: Dict[str, Dict] = {}
+_cache_lock = threading.Lock()
+CACHE_TTL_MINUTES = 15  # Cache data for 15 minutes
+
+
+def _get_cached(key: str) -> Optional[Dict]:
+    """Get cached data if not expired"""
+    with _cache_lock:
+        if key in _cache:
+            data, timestamp = _cache[key]
+            if datetime.now() - timestamp < timedelta(minutes=CACHE_TTL_MINUTES):
+                print(f"[CACHE] Using cached data for {key}")
+                return data
+            else:
+                del _cache[key]
+    return None
+
+
+def _set_cache(key: str, data: Dict) -> None:
+    """Store data in cache"""
+    with _cache_lock:
+        _cache[key] = (data, datetime.now())
 
 
 def get_voo_live_data() -> Dict:
@@ -18,6 +44,11 @@ def get_voo_live_data() -> Dict:
     - 1-year return
     - 5-year average annual return
     """
+    # Check cache first
+    cached = _get_cached("VOO_live")
+    if cached:
+        return cached
+
     try:
         print("[DEBUG] Fetching live VOO market data with yfinance...")
         ticker = yf.Ticker("VOO")
@@ -56,7 +87,7 @@ def get_voo_live_data() -> Dict:
 
         print(f"[DEBUG] VOO: ${current_price:.2f} ({change_percent:+.2f}% today) - Source: Yahoo Finance (yfinance)")
 
-        return {
+        result = {
             "ticker": "VOO",
             "price": round(current_price, 2),
             "change_percent_today": round(change_percent, 2),
@@ -66,6 +97,8 @@ def get_voo_live_data() -> Dict:
             "data_source": "Yahoo Finance",
             "last_updated": datetime.now().isoformat()
         }
+        _set_cache("VOO_live", result)
+        return result
 
     except Exception as e:
         print(f"[ERROR] yfinance fetch failed: {str(e)}")
@@ -92,6 +125,12 @@ def get_etf_details(ticker_symbol: str) -> Dict:
     """
     Get detailed ETF information including price, returns, and expense ratio.
     """
+    # Check cache first
+    cache_key = f"etf_{ticker_symbol}"
+    cached = _get_cached(cache_key)
+    if cached:
+        return cached
+
     try:
         ticker = yf.Ticker(ticker_symbol)
         info = ticker.info
@@ -130,7 +169,7 @@ def get_etf_details(ticker_symbol: str) -> Dict:
             "QQQ": 0.20, "AGG": 0.03, "VNQ": 0.12, "VWO": 0.08
         }
 
-        return {
+        result = {
             "ticker": ticker_symbol,
             "price": round(current_price, 2),
             "change_percent_today": round(change_percent, 2),
@@ -140,6 +179,8 @@ def get_etf_details(ticker_symbol: str) -> Dict:
             "data_source": "Yahoo Finance",
             "last_updated": datetime.now().isoformat()
         }
+        _set_cache(cache_key, result)
+        return result
 
     except Exception as e:
         print(f"[ERROR] Failed to fetch {ticker_symbol}: {str(e)}")
@@ -193,6 +234,11 @@ def get_sp500_performance() -> Dict:
     """
     Get S&P 500 performance data for comparison
     """
+    # Check cache first
+    cached = _get_cached("sp500_performance")
+    if cached:
+        return cached
+
     try:
         ticker = yf.Ticker("SPY")
         hist = ticker.history(period="1y")
@@ -204,13 +250,15 @@ def get_sp500_performance() -> Dict:
             if first_price > 0:
                 one_year_return = ((last_price - first_price) / first_price) * 100
 
-        return {
+        result = {
             "index": "S&P 500",
             "one_year_return": round(one_year_return, 2) if one_year_return else None,
             "historical_avg_return": 10.0,
             "note": "S&P 500 tracks 500 largest US companies",
             "last_updated": datetime.now().isoformat()
         }
+        _set_cache("sp500_performance", result)
+        return result
     except Exception as e:
         print(f"[ERROR] S&P 500 fetch failed: {str(e)}")
         return {

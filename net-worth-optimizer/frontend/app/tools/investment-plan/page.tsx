@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../context/AuthContext';
-import { useFinancialData } from '../context/FinancialContext';
+import Link from 'next/link';
+import { useAuth } from '../../context/AuthContext';
+import { useFinancialData } from '../../context/FinancialContext';
 
 interface ETFAllocation {
   ticker: string;
@@ -37,7 +38,7 @@ interface PersonalizedPlanResult {
   warnings: string[] | null;
 }
 
-export default function PersonalizedPlanPage() {
+export default function InvestmentPlanPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { financialData, updateFinancialData } = useFinancialData();
@@ -145,6 +146,19 @@ export default function PersonalizedPlanPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">
       <div className="max-w-6xl mx-auto">
+        {/* Back to Tools */}
+        <div className="mb-6">
+          <Link
+            href="/tools"
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors w-fit"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Tools
+          </Link>
+        </div>
+
         <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
           Personalized Investment Plan
         </h1>
@@ -308,7 +322,7 @@ export default function PersonalizedPlanPage() {
                 <ul className="space-y-2">
                   {plan.warnings.map((warning, idx) => (
                     <li key={idx} className="text-yellow-200 flex items-start">
-                      <span className="mr-2">⚠️</span>
+                      <span className="mr-2">Warning:</span>
                       {warning}
                     </li>
                   ))}
@@ -408,7 +422,7 @@ export default function PersonalizedPlanPage() {
               <ul className="space-y-3">
                 {plan.reasoning.map((reason, idx) => (
                   <li key={idx} className="flex items-start">
-                    <span className="text-green-400 mr-3">✓</span>
+                    <span className="text-green-400 mr-3">+</span>
                     <span className="text-gray-300">{reason}</span>
                   </li>
                 ))}

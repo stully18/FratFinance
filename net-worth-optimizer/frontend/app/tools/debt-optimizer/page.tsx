@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { Loan, LoanType, MultiLoanRequest, MultiLoanResult, MarketAssumptions } from '@/types';
-import { useFinancialData } from '../context/FinancialContext';
-import { useAuth } from '../context/AuthContext';
+import { useFinancialData } from '../../context/FinancialContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface VooMarketData {
   ticker: string;
@@ -18,7 +19,7 @@ interface VooMarketData {
   error?: string;
 }
 
-export default function Dashboard() {
+export default function DebtOptimizerPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { financialData, updateFinancialData } = useFinancialData();
@@ -32,11 +33,7 @@ export default function Dashboard() {
 
   // Redirect to login only AFTER auth finishes loading and there's truly no user
   useEffect(() => {
-    console.log('[Dashboard] Auth state:', { authLoading, user: user?.email, timestamp: new Date().toISOString() })
-    // ONLY redirect if we've finished loading AND there's no user
-    // Don't redirect during loading - let the page show loading spinner
     if (authLoading === false && user === null) {
-      console.log('[Dashboard] Auth complete with no user, redirecting to login')
       router.push('/auth/login');
     }
   }, [user, authLoading, router]);
@@ -172,10 +169,23 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">
       <div className="max-w-6xl mx-auto">
+        {/* Back to Tools */}
+        <div className="mb-6">
+          <Link
+            href="/tools"
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors w-fit"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Tools
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-            College Wealth Builder
+            Debt Optimizer
           </h1>
           <p className="text-gray-400">Add your loans and see which debts to pay first vs investing</p>
 
@@ -244,17 +254,17 @@ export default function Dashboard() {
               <p className="text-sm text-gray-400 mb-6">Click "Add Loan" above to get started</p>
 
               <div className="max-w-2xl mx-auto text-left bg-gray-700/50 rounded-lg p-6">
-                <h3 className="font-bold text-lg mb-3 text-green-400">💡 Quick Tips:</h3>
+                <h3 className="font-bold text-lg mb-3 text-green-400">Quick Tips:</h3>
                 <ul className="space-y-2 text-sm text-gray-300">
-                  <li>• Add all your debts: student loans, credit cards, car loans, etc.</li>
-                  <li>• You'll need: total balance, interest rate (APR), and monthly payment</li>
-                  <li>• Enter your monthly spare cash (money left after all bills/expenses)</li>
-                  <li>• We'll tell you which debt to tackle first vs investing in the market</li>
+                  <li>Add all your debts: student loans, credit cards, car loans, etc.</li>
+                  <li>You'll need: total balance, interest rate (APR), and monthly payment</li>
+                  <li>Enter your monthly spare cash (money left after all bills/expenses)</li>
+                  <li>We'll tell you which debt to tackle first vs investing in the market</li>
                 </ul>
 
                 <div className="mt-4 pt-4 border-t border-gray-600">
                   <p className="text-xs text-gray-400">
-                    <strong>Example:</strong> Credit card at 18% APR, Student loan at 6% APR →
+                    <strong>Example:</strong> Credit card at 18% APR, Student loan at 6% APR -
                     We'll recommend paying the credit card first (18% guaranteed return beats market's 10%)
                   </p>
                 </div>
@@ -359,7 +369,7 @@ export default function Dashboard() {
             disabled={isLoading || loans.length === 0}
             className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold text-lg transition-colors"
           >
-            {isLoading ? 'Optimizing...' : 'Optimize My Money 💰'}
+            {isLoading ? 'Optimizing...' : 'Optimize My Money'}
           </button>
 
           {error && (
@@ -458,10 +468,10 @@ export default function Dashboard() {
                     : "Once your high-interest debt is paid off, you'll want an investment plan ready. Set one up now based on your risk tolerance."}
                 </p>
                 <button
-                  onClick={() => router.push('/plan')}
+                  onClick={() => router.push('/tools/investment-plan')}
                   className="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-lg font-bold text-lg transition-all"
                 >
-                  Create My Investment Plan →
+                  Create My Investment Plan
                 </button>
               </div>
             </div>

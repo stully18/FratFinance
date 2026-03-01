@@ -22,10 +22,8 @@ export default function Navigation() {
   }
 
   const navItems = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/plan', label: 'Plan' },
-    { href: '/investments', label: 'Investments' },
-    { href: '/calculator', label: 'Calculator' }
+    { href: '/tools', label: 'Tools' },
+    { href: '/investments', label: 'Investments' }
   ]
 
   return (
