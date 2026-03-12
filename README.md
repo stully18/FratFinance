@@ -1,4 +1,4 @@
-# Net Worth Optimizer
+# FratFinance - Net Worth Optimizer
 
 A web application that helps college students make mathematically optimal financial decisions: should they pay off debt or invest their spare cash?
 
@@ -19,6 +19,9 @@ This app solves that by comparing:
 - **How-to-Invest Guide**: Step-by-step instructions for executing the investment plan
 - **Clear Recommendations**: Get a definitive answer with confidence scoring
 - **College-Optimized**: Designed for 4-year graduation timelines
+- **Plaid Integration**: Connect real bank accounts for automatic data import
+- **Live Market Data**: Real-time S&P 500 data via Alpha Vantage
+- **User Authentication**: Secure accounts with Supabase (signup, login, profile management)
 
 ## Tech Stack
 
@@ -36,8 +39,6 @@ This app solves that by comparing:
 - **Supabase JS Client**: Authentication and real-time database access
 
 ## Architecture
-
-Here's a high-level overview of the application's architecture:
 
 ```mermaid
 graph TD
@@ -65,19 +66,25 @@ graph TD
 - Python 3.9+ (for backend)
 - Node.js 18+ (for frontend)
 - npm or yarn
+- A Supabase account ([supabase.com](https://supabase.com))
 
 ### Installation
 
 #### 1. Clone the repository
 
 ```bash
-cd net-worth-optimizer
+git clone <repo-url>
+cd FratFinance
 ```
 
-#### 2. Set up the Backend
+#### 2. Set up Supabase
+
+See [docs/SUPABASE-SETUP.md](docs/SUPABASE-SETUP.md) for detailed instructions.
+
+#### 3. Set up the Backend
 
 ```bash
-cd backend
+cd net-worth-optimizer/backend
 
 # Create a virtual environment
 python -m venv venv
@@ -91,23 +98,29 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your Supabase credentials
+
 # Run the FastAPI server
 uvicorn app.main:app --reload
 ```
 
 The backend will start at `http://localhost:8000`
 
-To verify it's running, visit `http://localhost:8000` in your browser.
-
-#### 3. Set up the Frontend
+#### 4. Set up the Frontend
 
 Open a **new terminal window** (keep the backend running), then:
 
 ```bash
-cd frontend
+cd net-worth-optimizer/frontend
 
 # Install dependencies
 npm install
+
+# Configure environment variables
+cp .env.example .env.local
+# Edit .env.local with your Supabase credentials
 
 # Run the development server
 npm run dev
@@ -117,7 +130,7 @@ The frontend will start at `http://localhost:3000`
 
 ## User Accounts & Authentication
 
-FratFinance now includes **secure user authentication** powered by Supabase. Users can create accounts, sign in securely, and manage their financial plans.
+FratFinance includes **secure user authentication** powered by Supabase.
 
 ### Authentication Features
 
@@ -126,107 +139,66 @@ FratFinance now includes **secure user authentication** powered by Supabase. Use
 - **Protected Pages**: Dashboard, Settings, and financial data only accessible to authenticated users
 - **Profile Management**: Update full name and password
 - **Session Persistence**: Stay logged in across page refreshes
-- **Security**: Industry-standard JWT tokens and RLS database policies
+- **Security**: JWT tokens, PKCE flow, and RLS database policies
 
-### Getting Started with Authentication
-
-#### 1. Set Up Supabase
-
-Before running the app, create a Supabase project:
-
-1. Go to [https://supabase.com](https://supabase.com)
-2. Create a new project and note the Project URL and Anon Key
-3. Enable "Email Auth" in Authentication > Providers
-
-#### 2. Configure Environment Variables
-
-**Backend** (`backend/.env`):
-```
-SUPABASE_URL=https://[your-project].supabase.co
-SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
-```
-
-**Frontend** (`frontend/.env.local`):
-```
-NEXT_PUBLIC_SUPABASE_URL=https://[your-project].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
-```
-
-#### 3. Test Authentication
-
-Once running, test the authentication flow:
+### Testing Authentication
 
 1. Go to `http://localhost:3000/auth/signup`
-2. Create an account (or skip email verification in dev)
+2. Create an account with email and password
 3. Sign in with your credentials
 4. Access protected pages like Dashboard and Settings
-5. See the comprehensive testing guide: `docs/AUTHENTICATION-TESTING-GUIDE.md`
-
-### Authentication Documentation
-
-- **[AUTHENTICATION-TESTING-GUIDE.md](docs/AUTHENTICATION-TESTING-GUIDE.md)** - Complete testing procedures for all auth flows (10 test scenarios with expected results)
-- **[AUTHENTICATION-IMPLEMENTATION-SUMMARY.md](docs/AUTHENTICATION-IMPLEMENTATION-SUMMARY.md)** - Technical architecture, file descriptions, and security features
-
-### Usage
-
-#### First Time Users
-
-1. Go to `http://localhost:3000/auth/signup`
-2. Create your account with email and password
-3. Verify your email (or skip in development)
-4. Sign in with your credentials
-
-#### Using the App
-
-1. After logging in, you're on the Dashboard
-2. Use the Calculator to analyze your debt vs. investing scenarios:
-   - Principal amount
-   - Interest rate
-   - Minimum monthly payment
-   - Monthly spare cash
-   - Months until graduation
-3. Get your personalized recommendation with projected outcomes
-4. Save your financial plans (only available to logged-in users)
-5. Update your profile in Settings
 
 ## Example Scenarios
 
 ### Scenario 1: High-Interest Loan (9%)
 - **Loan**: $25,000 at 9% interest
 - **Spare Cash**: $100/month
-- **Result**: ✅ Pay Debt (guaranteed 9% return beats market's 7%)
+- **Result**: Pay Debt (guaranteed 9% return beats market's 7%)
 
 ### Scenario 2: Low-Interest Loan (3%)
 - **Loan**: $25,000 at 3% interest
 - **Spare Cash**: $100/month
-- **Result**: ✅ Invest (market's 7% beats loan's 3%)
+- **Result**: Invest (market's 7% beats loan's 3%)
 
 ## Project Structure
 
 ```
-net-worth-optimizer/
-├── backend/
-│   ├── app/
-│   │   ├── main.py              # FastAPI application
-│   │   ├── models/
-│   │   │   └── schemas.py       # Pydantic models
-│   │   └── services/
-│   │       └── optimization_engine.py  # Core calculation logic
-│   └── requirements.txt
-├── frontend/
-│   ├── app/
-│   │   ├── page.tsx             # Main dashboard
-│   │   ├── layout.tsx           # Root layout
-│   │   └── globals.css          # Global styles
-│   ├── components/
-│   │   ├── InputForm.tsx        # User input form
-│   │   ├── RecommendationCard.tsx
-│   │   └── ResultsVisualization.tsx
-│   ├── lib/
-│   │   └── api.ts               # API client
-│   └── types/
-│       └── index.ts             # TypeScript types
-└── README.md
+FratFinance/
+├── README.md
+├── docs/
+│   ├── DATABASE-SCHEMA.md
+│   ├── ENVIRONMENT-SETUP.md
+│   ├── SUPABASE-SETUP.md
+│   └── SUPABASE-SQL-EDITOR-GUIDE.md
+└── net-worth-optimizer/
+    ├── backend/
+    │   ├── app/
+    │   │   ├── main.py
+    │   │   ├── middleware/auth.py
+    │   │   ├── models/schemas.py
+    │   │   └── services/
+    │   │       ├── optimization_engine.py
+    │   │       └── user_service.py
+    │   ├── migrations/
+    │   │   └── 001_create_schema.sql
+    │   └── requirements.txt
+    └── frontend/
+        ├── app/
+        │   ├── auth/
+        │   │   ├── login/
+        │   │   └── signup/
+        │   ├── settings/
+        │   ├── components/
+        │   ├── context/AuthContext.tsx
+        │   ├── page.tsx
+        │   ├── layout.tsx
+        │   └── globals.css
+        ├── lib/
+        │   ├── api.ts
+        │   ├── auth.ts
+        │   └── supabase.ts
+        ├── middleware.ts
+        └── types/index.ts
 ```
 
 ## API Documentation
@@ -268,34 +240,43 @@ Response:
 }
 ```
 
+## Documentation
+
+| Topic | File |
+|-------|------|
+| Supabase setup | [docs/SUPABASE-SETUP.md](docs/SUPABASE-SETUP.md) |
+| Environment variables | [docs/ENVIRONMENT-SETUP.md](docs/ENVIRONMENT-SETUP.md) |
+| Database schema | [docs/DATABASE-SCHEMA.md](docs/DATABASE-SCHEMA.md) |
+| SQL editor guide | [docs/SUPABASE-SQL-EDITOR-GUIDE.md](docs/SUPABASE-SQL-EDITOR-GUIDE.md) |
+| Plaid integration | [net-worth-optimizer/COMPLETE-PLAID-GUIDE.md](net-worth-optimizer/COMPLETE-PLAID-GUIDE.md) |
+| Platform guide | [net-worth-optimizer/COMPLETE-PLATFORM-GUIDE.md](net-worth-optimizer/COMPLETE-PLATFORM-GUIDE.md) |
+| Auth architecture | [net-worth-optimizer/docs/AUTHENTICATION-IMPLEMENTATION-SUMMARY.md](net-worth-optimizer/docs/AUTHENTICATION-IMPLEMENTATION-SUMMARY.md) |
+| Auth testing | [net-worth-optimizer/docs/AUTHENTICATION-TESTING-GUIDE.md](net-worth-optimizer/docs/AUTHENTICATION-TESTING-GUIDE.md) |
+
 ## Future Enhancements
 
-### Phase 1 (MVP) ✅
+### Phase 1 (MVP) - Complete
 - [x] Basic debt vs. invest comparison
 - [x] Single loan support
-- [x] Fixed market assumptions
 - [x] User authentication system
 - [x] Profile management
 - [x] Plan saving and history
+- [x] Plaid bank account integration
+- [x] Live market data
 
 ### Phase 2 (Enhanced Auth)
 - [ ] Social login (Google, GitHub OAuth)
 - [ ] Password reset via email
 - [ ] Two-factor authentication (2FA)
-- [ ] Login history and device management
-- [ ] Admin dashboard for user management
 
 ### Phase 3 (ML Integration)
 - [ ] Machine learning model for market forecasting
 - [ ] Dynamic risk adjustment based on graduation timeline
-- [ ] Volatility predictions
 - [ ] Personalized recommendations based on user history
 
 ### Phase 4 (Advanced Features)
 - [ ] Multiple loan support
 - [ ] Semester-based cash flow predictions
-- [ ] Social comparison (peer benchmarking)
-- [ ] Bank integration via Plaid for automatic data import
 - [ ] Mobile app (iOS/Android)
 
 ## Contributing
@@ -309,7 +290,3 @@ This tool is for educational purposes only and does not constitute financial adv
 ## License
 
 MIT License - feel free to use this for your own projects!
-
----
-
-**Built with ❤️ for college students who want to make smarter financial decisions**
