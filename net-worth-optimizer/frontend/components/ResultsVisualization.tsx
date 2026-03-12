@@ -45,23 +45,23 @@ export default function ResultsVisualization({
         label: 'Pay Debt Strategy',
         data: monthlyBreakdown.map(d => d.debt_path_net_worth),
         borderColor: 'rgb(239, 68, 68)',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        borderWidth: 3,
+        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+        borderWidth: 2,
         tension: 0.4,
         fill: true,
         pointRadius: 0,
-        pointHoverRadius: 6
+        pointHoverRadius: 5
       },
       {
         label: 'Invest Strategy',
         data: monthlyBreakdown.map(d => d.invest_path_net_worth),
         borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        borderWidth: 3,
+        backgroundColor: 'rgba(34, 197, 94, 0.05)',
+        borderWidth: 2,
         tension: 0.4,
         fill: true,
         pointRadius: 0,
-        pointHoverRadius: 6
+        pointHoverRadius: 5
       }
     ]
   };
@@ -77,10 +77,10 @@ export default function ResultsVisualization({
       legend: {
         position: 'top' as const,
         labels: {
-          color: 'rgb(209, 213, 219)',
+          color: 'rgb(161, 161, 170)',
           font: {
-            size: 14,
-            weight: 'bold'
+            size: 13,
+            weight: 'normal'
           },
           padding: 20,
           usePointStyle: true
@@ -89,20 +89,20 @@ export default function ResultsVisualization({
       title: {
         display: true,
         text: 'Net Worth Projection Over Time',
-        color: 'rgb(243, 244, 246)',
+        color: 'rgb(244, 244, 245)',
         font: {
-          size: 18,
-          weight: 'bold'
+          size: 16,
+          weight: 'normal'
         },
         padding: {
           bottom: 20
         }
       },
       tooltip: {
-        backgroundColor: 'rgba(17, 24, 39, 0.95)',
-        titleColor: 'rgb(243, 244, 246)',
-        bodyColor: 'rgb(209, 213, 219)',
-        borderColor: 'rgb(75, 85, 99)',
+        backgroundColor: 'rgba(9, 9, 11, 0.95)',
+        titleColor: 'rgb(244, 244, 245)',
+        bodyColor: 'rgb(161, 161, 170)',
+        borderColor: 'rgb(63, 63, 70)',
         borderWidth: 1,
         padding: 12,
         displayColors: true,
@@ -124,36 +124,36 @@ export default function ResultsVisualization({
     scales: {
       y: {
         ticks: {
-          color: 'rgb(156, 163, 175)',
+          color: 'rgb(113, 113, 122)',
           callback: function(value) {
             return '$' + Number(value).toLocaleString();
           }
         },
         grid: {
-          color: 'rgba(75, 85, 99, 0.2)'
+          color: 'rgba(63, 63, 70, 0.3)'
         }
       },
       x: {
         ticks: {
-          color: 'rgb(156, 163, 175)',
+          color: 'rgb(113, 113, 122)',
           maxTicksLimit: 12
         },
         grid: {
-          color: 'rgba(75, 85, 99, 0.2)'
+          color: 'rgba(63, 63, 70, 0.3)'
         }
       }
     }
   };
 
   return (
-    <div className="bg-card-bg p-6 rounded-2xl border border-gray-800 h-full flex flex-col">
+    <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-800 h-full flex flex-col">
       <div className="flex-1 min-h-0">
         <Line data={chartData} options={options} />
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="p-3 bg-red-900/10 border border-red-500/20 rounded-lg">
-          <div className="text-xs text-gray-400 mb-1">Pay Debt Path</div>
-          <div className="text-lg font-bold text-red-400">
+        <div className="p-3 bg-zinc-800/50 border border-zinc-800 rounded-lg">
+          <div className="text-xs text-zinc-500 mb-1">Pay Debt Path</div>
+          <div className="text-lg font-semibold text-red-400">
             {new Intl.NumberFormat('en-US', {
               style: 'currency',
               currency: 'USD',
@@ -161,9 +161,9 @@ export default function ResultsVisualization({
             }).format(monthlyBreakdown[monthlyBreakdown.length - 1].debt_path_net_worth)}
           </div>
         </div>
-        <div className="p-3 bg-green-900/10 border border-green-500/20 rounded-lg">
-          <div className="text-xs text-gray-400 mb-1">Invest Path</div>
-          <div className="text-lg font-bold text-green-400">
+        <div className="p-3 bg-zinc-800/50 border border-zinc-800 rounded-lg">
+          <div className="text-xs text-zinc-500 mb-1">Invest Path</div>
+          <div className="text-lg font-semibold text-green-400">
             {new Intl.NumberFormat('en-US', {
               style: 'currency',
               currency: 'USD',

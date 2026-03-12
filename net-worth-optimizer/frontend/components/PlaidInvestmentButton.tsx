@@ -15,7 +15,8 @@ export default function PlaidInvestmentButton({ onSuccess }: PlaidInvestmentButt
   const fetchLinkToken = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/plaid/create-link-token', {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/api/plaid/create-link-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -67,7 +68,7 @@ export default function PlaidInvestmentButton({ onSuccess }: PlaidInvestmentButt
       type="button"
       onClick={handleClick}
       disabled={isLoading}
-      className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors"
+      className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-medium rounded-lg transition-colors active:scale-[0.98]"
     >
       {isLoading ? (
         <>

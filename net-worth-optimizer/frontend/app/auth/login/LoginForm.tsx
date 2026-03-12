@@ -18,8 +18,8 @@ export default function LoginForm() {
   // Redirect to dashboard once auth state is updated after login
   useEffect(() => {
     if (shouldRedirect && user) {
-      console.log('[LoginForm] Auth state updated with user, redirecting to dashboard')
-      router.push('/dashboard')
+      console.log('[LoginForm] Auth state updated with user, redirecting to home')
+      router.push('/')
     }
   }, [shouldRedirect, user, router])
 
@@ -57,18 +57,18 @@ export default function LoginForm() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-8">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl shadow-black/40 p-8">
         {/* Logo/Title */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-semibold tracking-tight text-zinc-50 mb-2">
             FratFinance
           </h1>
-          <p className="text-slate-400">Sign in to your account</p>
+          <p className="text-zinc-500">Sign in to your account</p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <div className="mb-6 p-4 bg-zinc-900 border-l-4 border-red-500 rounded-lg">
             <p className="text-red-400 text-sm font-medium">{error}</p>
           </div>
         )}
@@ -77,7 +77,7 @@ export default function LoginForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email Input */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-zinc-400 mb-2">
               Email Address
             </label>
             <input
@@ -86,14 +86,14 @@ export default function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all"
+              className="w-full px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
               disabled={isLoading}
             />
           </div>
 
           {/* Password Input */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-zinc-400 mb-2">
               Password
             </label>
             <input
@@ -102,7 +102,7 @@ export default function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all"
+              className="w-full px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
               disabled={isLoading}
             />
           </div>
@@ -111,7 +111,7 @@ export default function LoginForm() {
           <div className="flex justify-end">
             <Link
               href="/auth/forgot-password"
-              className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
             >
               Forgot password?
             </Link>
@@ -121,7 +121,7 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -129,11 +129,11 @@ export default function LoginForm() {
 
         {/* Sign Up Link */}
         <div className="mt-6 text-center">
-          <p className="text-slate-400">
+          <p className="text-zinc-500">
             Don't have an account?{' '}
             <Link
               href="/auth/signup"
-              className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+              className="text-blue-400 hover:text-blue-300 font-semibold transition-colors"
             >
               Sign up
             </Link>

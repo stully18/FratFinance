@@ -8,7 +8,7 @@ import Navigation from './components/Navigation'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'College Wealth Builder',
+  title: 'FratFinance',
   description: 'Optimize your financial decisions: debt repayment vs investing',
 }
 
@@ -19,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-app-bg min-h-screen`}>
+      <body className={`${inter.className} bg-zinc-950 min-h-screen`}>
         <AuthProvider>
           <FinancialProvider>
             <Navigation />

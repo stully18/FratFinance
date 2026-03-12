@@ -19,25 +19,23 @@ export default function RecommendationCard({
   const advantage = winningValue - losingValue;
 
   return (
-    <div className={`p-8 rounded-2xl border-2 ${
-      isPayDebt
-        ? 'bg-gradient-to-br from-red-900/20 to-red-950/10 border-red-500/50'
-        : 'bg-gradient-to-br from-green-900/20 to-green-950/10 border-green-500/50'
+    <div className={`p-8 rounded-xl border-l-4 bg-zinc-900 border-t border-r border-b border-t-zinc-800 border-r-zinc-800 border-b-zinc-800 ${
+      isPayDebt ? 'border-l-red-500' : 'border-l-green-500'
     }`}>
       <div className="text-center">
-        <div className="text-gray-400 text-sm font-medium uppercase tracking-wide mb-2">
+        <div className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-3">
           Optimal Strategy
         </div>
-        <div className={`text-5xl font-bold mb-4 ${
-          isPayDebt ? 'text-accent-red' : 'text-accent-green'
+        <div className={`text-4xl font-semibold mb-4 tracking-tight ${
+          isPayDebt ? 'text-red-400' : 'text-green-400'
         }`}>
-          {isPayDebt ? '🎯 Pay Debt' : '📈 Invest'}
+          {isPayDebt ? 'Pay Debt' : 'Invest'}
         </div>
 
         <div className="space-y-3 mb-6">
           <div>
-            <div className="text-gray-400 text-sm">Net Worth at Graduation</div>
-            <div className="text-3xl font-bold text-white">
+            <div className="text-zinc-500 text-sm">Net Worth at Graduation</div>
+            <div className="text-3xl font-semibold text-zinc-50 tracking-tight">
               {new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD',
@@ -46,8 +44,8 @@ export default function RecommendationCard({
             </div>
           </div>
 
-          <div className="text-sm text-gray-400">
-            <span className={isPayDebt ? 'text-accent-red' : 'text-accent-green'}>
+          <div className="text-sm text-zinc-500">
+            <span className={isPayDebt ? 'text-red-400' : 'text-green-400'}>
               {new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD',
@@ -58,27 +56,27 @@ export default function RecommendationCard({
           </div>
         </div>
 
-        <div className="bg-gray-800/50 rounded-lg p-4">
+        <div className="bg-zinc-800/50 rounded-lg p-4">
           <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-gray-400">Confidence</span>
-            <span className="text-white font-semibold">
+            <span className="text-zinc-500">Confidence</span>
+            <span className="text-zinc-200 font-medium">
               {(confidenceScore * 100).toFixed(0)}%
             </span>
           </div>
-          <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
+          <div className="bg-zinc-800 rounded-full h-1.5 overflow-hidden">
             <div
-              className={`h-full transition-all duration-500 ${isPayDebt ? 'bg-accent-red' : 'bg-accent-green'}`}
+              className={`h-full transition-all duration-500 rounded-full ${isPayDebt ? 'bg-red-500' : 'bg-green-500'}`}
               style={{ width: `${confidenceScore * 100}%` }}
             />
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-gray-800/30 rounded-lg">
-          <p className="text-xs text-gray-400 leading-relaxed">
+        <div className="mt-6 p-4 bg-zinc-800/30 rounded-lg border border-zinc-800">
+          <p className="text-xs text-zinc-400 leading-relaxed">
             {isPayDebt ? (
               <>
                 Your loan interest rate is higher than the S&P 500's 10% historical average return.
-                Paying debt is a <span className="text-white font-semibold">guaranteed return</span> - eliminate it first.
+                Paying debt is a <span className="text-zinc-200 font-medium">guaranteed return</span> - eliminate it first.
               </>
             ) : (
               <>

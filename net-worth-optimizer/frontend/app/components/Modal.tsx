@@ -26,30 +26,30 @@ export function Modal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-w-md w-full animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl shadow-black/40 max-w-md w-full animate-fade-in-up">
         {/* Header */}
-        <div className="border-b border-slate-700 p-6">
-          <h2 className="text-xl font-semibold text-white">{title}</h2>
-          {description && <p className="text-slate-400 text-sm mt-2">{description}</p>}
+        <div className="border-b border-zinc-800 p-6">
+          <h2 className="text-lg font-semibold text-zinc-50">{title}</h2>
+          {description && <p className="text-zinc-400 text-sm mt-2">{description}</p>}
         </div>
 
         {/* Footer with Actions */}
-        <div className="flex gap-3 p-6 bg-slate-900">
+        <div className="flex gap-3 p-6">
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 px-4 py-2 font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               isDangerous
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white'
+                ? 'bg-red-500 hover:bg-red-600 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
             }`}
           >
             {isLoading ? 'Loading...' : confirmText}

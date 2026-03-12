@@ -8,9 +8,9 @@ interface ToolCardProps {
   title: string;
   description: string;
   features: string[];
-  gradientFrom: string;
-  gradientTo: string;
-  borderColor: string;
+  gradientFrom?: string;
+  gradientTo?: string;
+  borderColor?: string;
 }
 
 export default function ToolCard({
@@ -19,24 +19,21 @@ export default function ToolCard({
   title,
   description,
   features,
-  gradientFrom,
-  gradientTo,
-  borderColor,
 }: ToolCardProps) {
   return (
     <Link
       href={href}
-      className={`group block bg-gradient-to-br ${gradientFrom} ${gradientTo} border ${borderColor} rounded-xl p-6 hover:scale-[1.02] transition-all duration-200 hover:shadow-xl`}
+      className="group block bg-zinc-900 border border-zinc-800 rounded-xl p-6 hover:border-zinc-600 transition-all duration-200"
     >
-      <div className="text-4xl mb-4">{icon}</div>
-      <h3 className="text-xl font-bold mb-2 group-hover:text-white transition-colors">
+      <div className="text-3xl mb-4">{icon}</div>
+      <h3 className="text-lg font-semibold text-zinc-50 mb-2 group-hover:text-white transition-colors">
         {title}
       </h3>
-      <p className="text-gray-300 text-sm mb-4">{description}</p>
-      <ul className="space-y-1">
+      <p className="text-zinc-400 text-sm mb-4">{description}</p>
+      <ul className="space-y-1.5">
         {features.map((feature, idx) => (
-          <li key={idx} className="text-xs text-gray-400 flex items-center gap-2">
-            <span className="text-green-400">+</span>
+          <li key={idx} className="text-xs text-zinc-500 flex items-center gap-2">
+            <span className="text-blue-500">+</span>
             {feature}
           </li>
         ))}

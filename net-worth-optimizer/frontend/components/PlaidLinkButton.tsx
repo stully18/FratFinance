@@ -15,7 +15,8 @@ export default function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
   const fetchLinkToken = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/plaid/create-link-token', {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/api/plaid/create-link-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: 'user-' + Date.now() })
@@ -35,7 +36,7 @@ export default function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
     try {
       console.log('Exchanging public token...');
       // Exchange public token for access token
-      const exchangeResponse = await fetch('http://localhost:8000/api/plaid/exchange-token', {
+      const exchangeResponse = await fetch(`${API_BASE_URL}/api/plaid/exchange-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ public_token })
@@ -57,7 +58,7 @@ export default function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
 
       console.log('Fetching account balance...');
       // Fetch account balance
-      const balanceResponse = await fetch('http://localhost:8000/api/plaid/balance', {
+      const balanceResponse = await fetch(`${API_BASE_URL}/api/plaid/balance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token })
@@ -116,7 +117,7 @@ export default function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
       type="button"
       onClick={handleClick}
       disabled={isLoading}
-      className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+      className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-zinc-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-zinc-200 text-sm font-medium rounded-lg transition-colors"
     >
       {isLoading ? (
         <>
