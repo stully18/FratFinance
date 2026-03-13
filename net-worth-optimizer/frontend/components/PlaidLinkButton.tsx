@@ -7,6 +7,8 @@ interface PlaidLinkButtonProps {
   onSuccess: (balance: number) => void;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +17,6 @@ export default function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
   const fetchLinkToken = async () => {
     setIsLoading(true);
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await fetch(`${API_BASE_URL}/api/plaid/create-link-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
