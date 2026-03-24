@@ -68,7 +68,7 @@ def _batch_download_etfs(tickers: List[str]) -> Dict:
         print(f"[DEBUG] Batch downloading {len(tickers)} ETFs: {', '.join(tickers)}")
 
         # Download all tickers at once
-        data = yf.download(tickers, period="1y", group_by='ticker', progress=False, threads=False)
+        data = yf.download(tickers, period="1y", group_by='ticker', progress=False, threads=False, multi_level_index=False)
 
         results = {}
         for ticker in tickers:
@@ -149,7 +149,7 @@ def get_voo_live_data() -> Dict:
         print("[DEBUG] Fetching live VOO market data with yfinance...")
 
         # Use download instead of Ticker to avoid quoteSummary endpoint
-        hist = yf.download("VOO", period="1y", progress=False)
+        hist = yf.download("VOO", period="1y", progress=False, multi_level_index=False)
 
         if hist.empty:
             return get_default_market_data()
@@ -283,7 +283,7 @@ def get_sp500_performance() -> Dict:
 
     try:
         _rate_limit()
-        hist = yf.download("SPY", period="1y", progress=False)
+        hist = yf.download("SPY", period="1y", progress=False, multi_level_index=False)
 
         one_year_return = None
         if not hist.empty:

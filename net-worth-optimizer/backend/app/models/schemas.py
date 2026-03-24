@@ -123,6 +123,13 @@ class PersonalizedPlanRequest(BaseModel):
     time_horizon_years: int = Field(default=10, gt=0, le=50, description="Investment time horizon in years")
     current_savings: float = Field(default=0.0, ge=0, description="Current savings/investment balance")
     has_emergency_fund: bool = Field(default=False, description="Whether user has 3-6 months emergency fund")
+    # Paycheck allocation fields (all optional — enables waterfall mode when monthly_gross_income is set)
+    monthly_gross_income: Optional[float] = Field(default=None, ge=0, description="Monthly gross income (enables paycheck allocation mode)")
+    monthly_expenses: Optional[float] = Field(default=None, ge=0, description="Monthly living expenses for emergency fund target calculation")
+    employer_401k_match_percent: Optional[float] = Field(default=None, ge=0, le=100, description="Employer matches up to X% of salary (e.g. 5 = 5%)")
+    include_roth_ira: bool = Field(default=False, description="Allocate to Roth IRA before brokerage")
+    current_emergency_fund: float = Field(default=0.0, ge=0, description="Current emergency fund balance")
+    emergency_fund_months_target: int = Field(default=3, ge=1, le=12, description="Target months of expenses in emergency fund")
 
 class PersonalizedPlanResult(BaseModel):
     portfolio_name: str
@@ -140,3 +147,5 @@ class PersonalizedPlanResult(BaseModel):
     reasoning: List[str]
     next_steps: List[str]
     warnings: Optional[List[str]] = None
+    paycheck_breakdown: Optional[dict] = None
+    months_to_emergency_fund: Optional[int] = None

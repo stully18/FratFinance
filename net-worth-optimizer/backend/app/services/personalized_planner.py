@@ -10,7 +10,8 @@ Creates customized investment portfolios based on:
 Uses real market data to show actual ETF performance and build realistic portfolios.
 """
 
-from typing import List, Dict
+from typing import List, Dict, Optional
+import math
 from app.models.schemas import (
     PersonalizedPlanRequest,
     PersonalizedPlanResult,
@@ -96,6 +97,68 @@ GOAL_ADJUSTMENTS = {
 }
 
 
+ROTH_IRA_ANNUAL_LIMIT = 7000.0  # 2025 contribution limit
+
+
+def calculate_paycheck_allocation(request: PersonalizedPlanRequest) -> Optional[Dict]:
+    """
+    Waterfall algorithm to split monthly savings budget across account types.
+    Priority order: emergency fund → 401k to match → Roth IRA → brokerage
+
+    Returns a breakdown dict, or None if paycheck mode is not enabled.
+    """
+    if request.monthly_gross_income is None:
+        return None
+
+    budget = request.monthly_investment_amount
+    remaining = budget
+
+    # 1. Emergency fund
+    emergency_monthly = 0.0
+    months_to_goal = None
+    if request.monthly_expenses is not None:
+        target = request.monthly_expenses * request.emergency_fund_months_target
+        gap = max(0.0, target - request.current_emergency_fund)
+        if gap > 0:
+            # Fill the gap over at most 6 months
+            emergency_monthly = min(gap / 6, remaining)
+            months_to_goal = math.ceil(gap / emergency_monthly) if emergency_monthly > 0 else None
+            remaining = max(0.0, remaining - emergency_monthly)
+    else:
+        target = 0.0
+
+    # 2. 401k up to employer match
+    contribution_401k = 0.0
+    employer_match_401k = 0.0
+    if request.employer_401k_match_percent is not None and request.employer_401k_match_percent > 0:
+        match_threshold = request.monthly_gross_income * (request.employer_401k_match_percent / 100)
+        contribution_401k = min(match_threshold, remaining)
+        employer_match_401k = contribution_401k  # employer matches dollar-for-dollar up to threshold
+        remaining = max(0.0, remaining - contribution_401k)
+
+    # 3. Roth IRA
+    contribution_roth_ira = 0.0
+    if request.include_roth_ira:
+        roth_monthly_limit = ROTH_IRA_ANNUAL_LIMIT / 12
+        contribution_roth_ira = min(roth_monthly_limit, remaining)
+        remaining = max(0.0, remaining - contribution_roth_ira)
+
+    # 4. Brokerage (everything left)
+    brokerage_investment = remaining
+
+    return {
+        "total_monthly_savings": round(budget, 2),
+        "emergency_fund_monthly": round(emergency_monthly, 2),
+        "emergency_fund_target": round(target, 2),
+        "emergency_fund_current": round(request.current_emergency_fund, 2),
+        "months_to_emergency_fund": months_to_goal,
+        "contribution_401k": round(contribution_401k, 2),
+        "employer_match_401k": round(employer_match_401k, 2),
+        "contribution_roth_ira": round(contribution_roth_ira, 2),
+        "brokerage_investment": round(brokerage_investment, 2),
+    }
+
+
 def generate_personalized_plan(request: PersonalizedPlanRequest) -> PersonalizedPlanResult:
     """
     Generate a personalized investment plan based on user's profile.
@@ -107,6 +170,17 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
         Detailed investment plan with real ETF data and projections
     """
     print(f"[DEBUG] Generating personalized plan: ${request.monthly_investment_amount}/mo, {request.risk_tolerance.value} risk, {request.financial_goal.value} goal")
+
+    # Paycheck allocation waterfall (optional — only runs when monthly_gross_income is set)
+    paycheck_breakdown = calculate_paycheck_allocation(request)
+    effective_monthly = (
+        paycheck_breakdown["brokerage_investment"]
+        if paycheck_breakdown is not None
+        else request.monthly_investment_amount
+    )
+    months_to_emergency_fund = (
+        paycheck_breakdown["months_to_emergency_fund"] if paycheck_breakdown else None
+    )
 
     # Get base portfolio template
     template = PORTFOLIO_TEMPLATES[request.risk_tolerance]
@@ -140,7 +214,7 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
 
         # Get market data from batch result
         etf_data = all_etf_data.get(ticker, market_data_fetcher.get_demo_etf_data(ticker))
-        monthly_amount = (percentage / 100) * request.monthly_investment_amount
+        monthly_amount = (percentage / 100) * effective_monthly
 
         # Get ETF metadata
         etf_info = get_etf_metadata(ticker)
@@ -173,27 +247,27 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
         expected_return *= 0.85
 
     current_value = request.current_savings
-    monthly_investment = request.monthly_investment_amount
 
     # Future value calculations (compound interest with monthly contributions)
-    projected_1yr = calculate_future_value(current_value, monthly_investment, expected_return, 1)
-    projected_5yr = calculate_future_value(current_value, monthly_investment, expected_return, 5)
-    projected_10yr = calculate_future_value(current_value, monthly_investment, expected_return, 10)
-    projected_20yr = calculate_future_value(current_value, monthly_investment, expected_return, 20)
-    projected_30yr = calculate_future_value(current_value, monthly_investment, expected_return, 30)
+    # Uses brokerage amount only — 401k/Roth projections are separate account growth
+    projected_1yr = calculate_future_value(current_value, effective_monthly, expected_return, 1)
+    projected_5yr = calculate_future_value(current_value, effective_monthly, expected_return, 5)
+    projected_10yr = calculate_future_value(current_value, effective_monthly, expected_return, 10)
+    projected_20yr = calculate_future_value(current_value, effective_monthly, expected_return, 20)
+    projected_30yr = calculate_future_value(current_value, effective_monthly, expected_return, 30)
 
     # Generate reasoning
     reasoning = generate_reasoning(request, template, goal_config, expected_return)
 
     # Generate next steps
-    next_steps = generate_next_steps(request, etf_allocations)
+    next_steps = generate_next_steps(request, etf_allocations, paycheck_breakdown)
 
     # Generate warnings if needed
     warnings = generate_warnings(request)
 
     # Monthly breakdown
     monthly_breakdown = {
-        ticker: round((pct / 100) * monthly_investment, 2)
+        ticker: round((pct / 100) * effective_monthly, 2)
         for ticker, pct in allocation.items()
         if pct > 0
     }
@@ -213,7 +287,9 @@ def generate_personalized_plan(request: PersonalizedPlanRequest) -> Personalized
         rebalancing_frequency=template["rebalance"],
         reasoning=reasoning,
         next_steps=next_steps,
-        warnings=warnings
+        warnings=warnings,
+        paycheck_breakdown=paycheck_breakdown,
+        months_to_emergency_fund=months_to_emergency_fund,
     )
 
     print(f"[DEBUG] Plan generated: {template['name']}, {len(etf_allocations)} ETFs, {expected_return * 100:.1f}% expected return")
@@ -330,31 +406,45 @@ def generate_reasoning(request: PersonalizedPlanRequest, template: Dict, goal_co
     # Expected return
     reasoning.append(f"This portfolio targets ~{expected_return * 100:.1f}% annual return based on historical performance of these ETFs.")
 
-    # Monthly investment power
-    total_10yr = calculate_future_value(request.current_savings, request.monthly_investment_amount, expected_return, 10)
-    reasoning.append(f"Investing ${request.monthly_investment_amount:.0f}/month could grow to ${total_10yr:,.0f} in 10 years.")
+    # Monthly investment power (use brokerage amount if paycheck mode, else full budget)
+    invest_amount = request.monthly_investment_amount
+    total_10yr = calculate_future_value(request.current_savings, invest_amount, expected_return, 10)
+    reasoning.append(f"Investing ${invest_amount:.0f}/month could grow to ${total_10yr:,.0f} in 10 years.")
 
     return reasoning
 
 
-def generate_next_steps(request: PersonalizedPlanRequest, allocations: List[ETFAllocation]) -> List[str]:
+def generate_next_steps(request: PersonalizedPlanRequest, allocations: List[ETFAllocation], paycheck_breakdown: Optional[Dict] = None) -> List[str]:
     """Generate actionable next steps."""
     steps = []
 
-    if not request.has_emergency_fund:
-        steps.append("⚠️ FIRST: Build 3-6 months emergency fund in a high-yield savings account before investing")
+    if paycheck_breakdown:
+        # Paycheck-aware steps
+        if paycheck_breakdown["emergency_fund_monthly"] > 0:
+            months = paycheck_breakdown["months_to_emergency_fund"]
+            steps.append(f"Transfer ${paycheck_breakdown['emergency_fund_monthly']:.0f}/mo to a high-yield savings account for your emergency fund (funded in ~{months} months)")
 
-    steps.append("Open a brokerage account (Fidelity, Vanguard, or Schwab are excellent choices)")
+        if paycheck_breakdown["contribution_401k"] > 0:
+            total_401k = paycheck_breakdown["contribution_401k"] + paycheck_breakdown["employer_match_401k"]
+            steps.append(f"Contribute ${paycheck_breakdown['contribution_401k']:.0f}/mo to your 401k — your employer adds ${paycheck_breakdown['employer_match_401k']:.0f} for a total of ${total_401k:.0f}/mo")
 
-    steps.append(f"Set up automatic monthly investment of ${request.monthly_investment_amount:.0f}")
+        if paycheck_breakdown["contribution_roth_ira"] > 0:
+            steps.append(f"Contribute ${paycheck_breakdown['contribution_roth_ira']:.0f}/mo to your Roth IRA (Fidelity or Vanguard) — tax-free growth for life")
+
+        steps.append("Open a taxable brokerage account (Fidelity, Vanguard, or Schwab) for your ETF investments")
+        steps.append(f"Set up automatic monthly investment of ${paycheck_breakdown['brokerage_investment']:.0f} into your ETF portfolio")
+    else:
+        if not request.has_emergency_fund:
+            steps.append("FIRST: Build 3-6 months emergency fund in a high-yield savings account before investing")
+
+        steps.append("Open a brokerage account (Fidelity, Vanguard, or Schwab are excellent choices)")
+        steps.append(f"Set up automatic monthly investment of ${request.monthly_investment_amount:.0f}")
 
     for alloc in allocations:
         steps.append(f"Buy ${alloc.monthly_amount:.0f} of {alloc.ticker} ({alloc.name}) each month")
 
-    steps.append(f"Rebalance your portfolio quarterly or semi-annually")
-
+    steps.append("Rebalance your portfolio quarterly or semi-annually")
     steps.append("Review and adjust your plan annually or after major life changes")
-
     steps.append("Don't panic sell during market downturns - stay the course!")
 
     return steps

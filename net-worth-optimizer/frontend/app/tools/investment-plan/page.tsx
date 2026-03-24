@@ -20,6 +20,18 @@ interface ETFAllocation {
   risk_level: string;
 }
 
+interface PaycheckBreakdown {
+  total_monthly_savings: number;
+  emergency_fund_monthly: number;
+  emergency_fund_target: number;
+  emergency_fund_current: number;
+  months_to_emergency_fund: number | null;
+  contribution_401k: number;
+  employer_match_401k: number;
+  contribution_roth_ira: number;
+  brokerage_investment: number;
+}
+
 interface PersonalizedPlanResult {
   portfolio_name: string;
   risk_profile: string;
@@ -36,6 +48,8 @@ interface PersonalizedPlanResult {
   reasoning: string[];
   next_steps: string[];
   warnings: string[] | null;
+  paycheck_breakdown: PaycheckBreakdown | null;
+  months_to_emergency_fund: number | null;
 }
 
 export default function InvestmentPlanPage() {
@@ -56,7 +70,14 @@ export default function InvestmentPlanPage() {
     financial_goal: financialData.financialGoal,
     time_horizon_years: financialData.timeHorizon,
     current_savings: financialData.currentSavings,
-    has_emergency_fund: financialData.hasEmergencyFund
+    has_emergency_fund: financialData.hasEmergencyFund,
+    // Paycheck allocation fields
+    monthly_gross_income: '' as number | '',
+    monthly_expenses: '' as number | '',
+    employer_401k_match_percent: '' as number | '',
+    include_roth_ira: false,
+    current_emergency_fund: 0,
+    emergency_fund_months_target: 3,
   });
 
   const [plan, setPlan] = useState<PersonalizedPlanResult | null>(null);
@@ -92,12 +113,24 @@ export default function InvestmentPlanPage() {
 
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const grossIncome = formData.monthly_gross_income === '' ? null : formData.monthly_gross_income;
+      const expenses = formData.monthly_expenses === '' ? null : Number(formData.monthly_expenses);
+      const emergencyFundFull = expenses !== null
+        ? formData.current_emergency_fund >= expenses * formData.emergency_fund_months_target
+        : formData.has_emergency_fund;
+      const payload = {
+        ...formData,
+        monthly_gross_income: grossIncome,
+        monthly_expenses: expenses,
+        employer_401k_match_percent: formData.employer_401k_match_percent === '' ? null : formData.employer_401k_match_percent,
+        has_emergency_fund: emergencyFundFull,
+      };
       const response = await fetch(`${API_BASE_URL}/api/plan/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -129,7 +162,7 @@ export default function InvestmentPlanPage() {
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked :
-              type === 'number' ? parseFloat(value) : value
+              type === 'number' ? (value === '' ? '' : parseFloat(value)) : value
     }));
   };
 
@@ -165,123 +198,211 @@ export default function InvestmentPlanPage() {
           Personalized Investment Plan
         </h1>
         <p className="text-zinc-500 mb-8">
-          Get a customized portfolio based on your financial goals, risk tolerance, and real market data
+          Enter your income, expenses, and goals to get a personalized portfolio with a full paycheck allocation plan
         </p>
 
         {/* Input Form */}
-        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Monthly Investment Amount */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">
-                Monthly Investment Amount
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-3 text-zinc-500">$</span>
+        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8 space-y-8">
+
+          {/* Section 1: Income & Savings */}
+          <div>
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">Income &amp; Savings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Monthly Take-Home Pay</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-zinc-500">$</span>
+                  <input
+                    type="number"
+                    name="monthly_gross_income"
+                    value={formData.monthly_gross_income}
+                    onChange={handleChange}
+                    min="0"
+                    step="1"
+                    placeholder="e.g. 4000"
+                    className="w-full pl-8 pr-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Monthly Living Expenses</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-zinc-500">$</span>
+                  <input
+                    type="number"
+                    name="monthly_expenses"
+                    value={formData.monthly_expenses}
+                    onChange={handleChange}
+                    min="0"
+                    step="1"
+                    placeholder="e.g. 2000"
+                    className="w-full pl-8 pr-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                  Monthly Savings Budget
+                  <span className="ml-1 text-zinc-600 font-normal text-xs">(total to save/invest)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-zinc-500">$</span>
+                  <input
+                    type="number"
+                    name="monthly_investment_amount"
+                    value={formData.monthly_investment_amount}
+                    onChange={handleChange}
+                    min="1"
+                    step="1"
+                    className="w-full pl-8 pr-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-zinc-800" />
+
+          {/* Section 2: Emergency Fund & Accounts */}
+          <div>
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">Emergency Fund &amp; Accounts</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Current Emergency Fund</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-zinc-500">$</span>
+                  <input
+                    type="number"
+                    name="current_emergency_fund"
+                    value={formData.current_emergency_fund}
+                    onChange={handleChange}
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    className="w-full pl-8 pr-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Emergency Fund Target</label>
+                <select
+                  name="emergency_fund_months_target"
+                  value={formData.emergency_fund_months_target}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                >
+                  <option value={3}>3 months of expenses</option>
+                  <option value={4}>4 months of expenses</option>
+                  <option value={5}>5 months of expenses</option>
+                  <option value={6}>6 months of expenses</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                  Employer 401k Match
+                  <span className="block text-xs text-zinc-600 font-normal">% of salary employer matches</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    name="employer_401k_match_percent"
+                    value={formData.employer_401k_match_percent}
+                    onChange={handleChange}
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    placeholder="e.g. 5"
+                    className="w-full pl-4 pr-8 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                  />
+                  <span className="absolute right-3 top-3 text-zinc-500">%</span>
+                </div>
+              </div>
+              <div className="flex items-center pt-7">
+                <input
+                  type="checkbox"
+                  name="include_roth_ira"
+                  checked={formData.include_roth_ira}
+                  onChange={handleChange}
+                  className="w-5 h-5 bg-zinc-800 border border-zinc-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+                <label className="ml-3 text-sm font-medium text-zinc-400">
+                  Include Roth IRA
+                  <span className="block text-xs text-zinc-600">Up to $583/mo ($7k/yr)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-zinc-800" />
+
+          {/* Section 3: Investment Goals */}
+          <div>
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">Investment Goals</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Risk Tolerance</label>
+                <select
+                  name="risk_tolerance"
+                  value={formData.risk_tolerance}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                >
+                  <option value="conservative">Conservative</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="aggressive">Aggressive</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Primary Goal</label>
+                <select
+                  name="financial_goal"
+                  value={formData.financial_goal}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                >
+                  <option value="wealth_building">Wealth Building</option>
+                  <option value="income_generation">Income Generation</option>
+                  <option value="capital_preservation">Capital Preservation</option>
+                  <option value="debt_freedom">Debt Freedom</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Time Horizon (Years)</label>
                 <input
                   type="number"
-                  name="monthly_investment_amount"
-                  value={formData.monthly_investment_amount}
+                  name="time_horizon_years"
+                  value={formData.time_horizon_years}
                   onChange={handleChange}
                   min="1"
-                  step="1"
-                  className="w-full pl-8 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                  max="50"
+                  className="w-full px-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
                   required
                 />
               </div>
-            </div>
-
-            {/* Current Savings */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">
-                Current Savings
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-3 text-zinc-500">$</span>
-                <input
-                  type="number"
-                  name="current_savings"
-                  value={formData.current_savings}
-                  onChange={handleChange}
-                  min="0"
-                  step="1"
-                  className="w-full pl-8 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                  required
-                />
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Current Investment Savings</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-zinc-500">$</span>
+                  <input
+                    type="number"
+                    name="current_savings"
+                    value={formData.current_savings}
+                    onChange={handleChange}
+                    min="0"
+                    step="1"
+                    className="w-full pl-8 pr-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                    required
+                  />
+                </div>
               </div>
-            </div>
-
-            {/* Time Horizon */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">
-                Time Horizon (Years)
-              </label>
-              <input
-                type="number"
-                name="time_horizon_years"
-                value={formData.time_horizon_years}
-                onChange={handleChange}
-                min="1"
-                max="50"
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                required
-              />
-            </div>
-
-            {/* Risk Tolerance */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">
-                Risk Tolerance
-              </label>
-              <select
-                name="risk_tolerance"
-                value={formData.risk_tolerance}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
-              >
-                <option value="conservative">Conservative - Stability First</option>
-                <option value="moderate">Moderate - Balanced Growth</option>
-                <option value="aggressive">Aggressive - Maximum Growth</option>
-              </select>
-            </div>
-
-            {/* Financial Goal */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">
-                Primary Financial Goal
-              </label>
-              <select
-                name="financial_goal"
-                value={formData.financial_goal}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
-              >
-                <option value="wealth_building">Wealth Building - Long-term Growth</option>
-                <option value="income_generation">Income Generation - Dividends</option>
-                <option value="capital_preservation">Capital Preservation - Protect Assets</option>
-                <option value="debt_freedom">Debt Freedom - Build Emergency Fund</option>
-              </select>
-            </div>
-
-            {/* Emergency Fund */}
-            <div className="flex items-center pt-8">
-              <input
-                type="checkbox"
-                name="has_emergency_fund"
-                checked={formData.has_emergency_fund}
-                onChange={handleChange}
-                className="w-5 h-5 bg-zinc-900 border border-zinc-700 rounded text-blue-500 focus:ring-2 focus:ring-blue-500/20"
-              />
-              <label className="ml-3 text-sm font-medium text-zinc-400">
-                I have a 3-6 month emergency fund
-              </label>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 w-full px-6 py-3 bg-blue-500 rounded-lg font-semibold text-white hover:bg-blue-600 transition-colors disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed active:scale-[0.98]"
+            className="w-full px-6 py-3 bg-blue-500 rounded-lg font-semibold text-white hover:bg-blue-600 transition-colors disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed active:scale-[0.98]"
           >
             {loading ? 'Generating Plan...' : 'Generate My Investment Plan'}
           </button>
@@ -316,6 +437,93 @@ export default function InvestmentPlanPage() {
                 </div>
               </div>
             </div>
+
+            {/* Paycheck Allocation Breakdown */}
+            {plan.paycheck_breakdown && (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                <h3 className="text-xl font-semibold tracking-tight text-zinc-50 mb-1">Your Paycheck Allocation</h3>
+                <p className="text-sm text-zinc-500 mb-5">
+                  How your ${plan.paycheck_breakdown.total_monthly_savings.toLocaleString()}/mo savings budget is divided across accounts
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Emergency Fund */}
+                  <div className="bg-zinc-800/40 border border-amber-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                      <span className="text-xs font-semibold text-amber-400 uppercase tracking-wide">Emergency Fund</span>
+                    </div>
+                    <div className="text-2xl font-semibold text-zinc-100 mb-1">
+                      ${plan.paycheck_breakdown.emergency_fund_monthly.toLocaleString()}<span className="text-sm text-zinc-500">/mo</span>
+                    </div>
+                    {plan.paycheck_breakdown.emergency_fund_monthly > 0 ? (
+                      <div className="text-xs text-zinc-500">
+                        {plan.paycheck_breakdown.months_to_emergency_fund
+                          ? `~${plan.paycheck_breakdown.months_to_emergency_fund} months to goal`
+                          : 'Building fund'
+                        }
+                        <div className="mt-1 text-zinc-600">
+                          ${plan.paycheck_breakdown.emergency_fund_current.toLocaleString()} of ${plan.paycheck_breakdown.emergency_fund_target.toLocaleString()} target
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-green-400">Fund complete</div>
+                    )}
+                  </div>
+
+                  {/* 401k */}
+                  <div className="bg-zinc-800/40 border border-blue-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                      <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">401k</span>
+                    </div>
+                    <div className="text-2xl font-semibold text-zinc-100 mb-1">
+                      ${plan.paycheck_breakdown.contribution_401k.toLocaleString()}<span className="text-sm text-zinc-500">/mo</span>
+                    </div>
+                    {plan.paycheck_breakdown.employer_match_401k > 0 && (
+                      <div className="text-xs text-zinc-500">
+                        <span className="text-green-400">+${plan.paycheck_breakdown.employer_match_401k.toLocaleString()} employer match</span>
+                        <div className="text-zinc-600">= ${(plan.paycheck_breakdown.contribution_401k + plan.paycheck_breakdown.employer_match_401k).toLocaleString()} total/mo</div>
+                      </div>
+                    )}
+                    {plan.paycheck_breakdown.contribution_401k === 0 && (
+                      <div className="text-xs text-zinc-600">No match configured</div>
+                    )}
+                  </div>
+
+                  {/* Roth IRA */}
+                  {plan.paycheck_breakdown.contribution_roth_ira > 0 && (
+                    <div className="bg-zinc-800/40 border border-purple-500/20 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+                        <span className="text-xs font-semibold text-purple-400 uppercase tracking-wide">Roth IRA</span>
+                      </div>
+                      <div className="text-2xl font-semibold text-zinc-100 mb-1">
+                        ${plan.paycheck_breakdown.contribution_roth_ira.toLocaleString()}<span className="text-sm text-zinc-500">/mo</span>
+                      </div>
+                      <div className="text-xs text-zinc-500">Tax-free growth</div>
+                      <div className="text-xs text-zinc-600">${(plan.paycheck_breakdown.contribution_roth_ira * 12).toLocaleString()} of $7,000/yr limit</div>
+                    </div>
+                  )}
+
+                  {/* Brokerage */}
+                  <div className="bg-zinc-800/40 border border-green-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                      <span className="text-xs font-semibold text-green-400 uppercase tracking-wide">Brokerage</span>
+                    </div>
+                    <div className="text-2xl font-semibold text-zinc-100 mb-1">
+                      ${plan.paycheck_breakdown.brokerage_investment.toLocaleString()}<span className="text-sm text-zinc-500">/mo</span>
+                    </div>
+                    <div className="text-xs text-zinc-500">ETF portfolio below</div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-zinc-600 mt-4">
+                  The ETF allocation below is for your brokerage account (${plan.paycheck_breakdown.brokerage_investment.toLocaleString()}/mo). Projections reflect brokerage growth only.
+                </p>
+              </div>
+            )}
 
             {/* Warnings */}
             {plan.warnings && plan.warnings.length > 0 && (
