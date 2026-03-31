@@ -26,9 +26,9 @@ export async function signUp({ email, password, fullName }: SignUpData) {
 
     if (authError) throw authError
 
-    return { user: authData.user, error: null }
+    return { user: authData.user, session: authData.session, error: null }
   } catch (error) {
-    return { user: null, error }
+    return { user: null, session: null, error }
   }
 }
 

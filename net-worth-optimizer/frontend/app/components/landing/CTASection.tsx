@@ -3,10 +3,12 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
+import { useAuth } from '@/app/context/AuthContext'
 
 export default function CTASection() {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: '-80px' })
+  const { user, isLoading } = useAuth()
 
   return (
     <section ref={ref} className="py-24 px-6 relative overflow-hidden">
@@ -30,12 +32,14 @@ export default function CTASection() {
         <p className="text-text-secondary text-lg leading-[1.7] mb-10">
           Join thousands of students making smarter financial decisions.
         </p>
-        <Link
-          href="/auth/signup"
-          className="btn-gradient text-lg px-10 py-4 inline-block"
-        >
-          Create Free Account
-        </Link>
+        {!isLoading && (
+          <Link
+            href={user ? '/tools' : '/auth/signup'}
+            className="btn-gradient text-lg px-10 py-4 inline-block"
+          >
+            {user ? 'Continue to Tools' : 'Create Free Account'}
+          </Link>
+        )}
       </motion.div>
     </section>
   )

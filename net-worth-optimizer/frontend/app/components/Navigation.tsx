@@ -72,23 +72,23 @@ export default function Navigation() {
           : 'bg-background/90 backdrop-blur-xl border-b border-border-subtle/60'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-5 h-14 flex items-center justify-between">
+      <div className="w-full px-5 md:px-8 lg:px-12 h-18 md:h-20 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <Layers size={18} className="text-primary" />
-          <span className="text-[1.15rem] font-semibold tracking-tight text-text-primary transition-colors group-hover:text-white">
+        <Link href="/" className="flex items-center gap-3 group">
+          <Layers size={22} className="text-primary" />
+          <span className="text-[1.35rem] font-semibold tracking-tight text-text-primary transition-colors group-hover:text-white">
             StackSmart
           </span>
         </Link>
 
         {/* Center Nav Items - Desktop only, only when logged in */}
         {user && !isLoading && (
-          <div className="hidden md:flex items-center gap-0.5">
+          <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative px-3.5 py-1.5 text-sm font-medium transition-colors rounded-md ${
+                className={`relative px-5 py-2 text-base font-medium transition-colors rounded-md ${
                   pathname === item.href
                     ? 'text-text-primary'
                     : 'text-text-muted hover:text-text-secondary'
@@ -96,7 +96,7 @@ export default function Navigation() {
               >
                 {item.label}
                 {pathname === item.href && (
-                  <span className="absolute bottom-[-0.9rem] left-3.5 right-3.5 h-[2px] bg-gradient-to-r from-primary to-accent-violet rounded-full" />
+                  <span className="absolute bottom-[-1.05rem] left-5 right-5 h-[2px] bg-gradient-to-r from-primary to-accent-violet rounded-full" />
                 )}
               </Link>
             ))}
@@ -104,24 +104,24 @@ export default function Navigation() {
         )}
 
         {/* Right Side */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {/* Desktop auth / user menu */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-4">
             {isLoading ? (
               <div className="w-7 h-7 rounded-full bg-surface-elevated animate-pulse" />
             ) : user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="h-9 px-3 rounded-lg bg-surface border border-border-subtle hover:border-border text-text-secondary hover:text-text-primary transition-colors duration-200 flex items-center gap-2.5"
+                  className="h-11 px-4 rounded-lg bg-surface border border-border-subtle hover:border-border text-text-secondary hover:text-text-primary transition-colors duration-200 flex items-center gap-3"
                 >
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-accent-violet flex items-center justify-center">
-                    <span className="text-[11px] font-semibold text-background leading-none">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent-violet flex items-center justify-center">
+                    <span className="text-xs font-semibold text-background leading-none">
                       {userInitial}
                     </span>
                   </div>
-                  <span className="text-[13px] hidden sm:inline">{user.email}</span>
-                  <ChevronDown size={10} className="text-text-muted ml-0.5" />
+                  <span className="text-[15px] hidden sm:inline">{user.email}</span>
+                  <ChevronDown size={12} className="text-text-muted ml-0.5" />
                 </button>
 
                 {/* Dropdown Menu */}

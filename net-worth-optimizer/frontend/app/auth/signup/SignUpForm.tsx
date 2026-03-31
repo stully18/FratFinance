@@ -131,7 +131,12 @@ export default function SignUpForm() {
       }
 
       if (result.user) {
-        router.push('/')
+        // Logged-in immediately (e.g. email confirmation off); tools is the app home
+        if (result.session) {
+          router.push('/tools')
+        } else {
+          router.push('/')
+        }
       }
     } catch (err) {
       setErrors({
