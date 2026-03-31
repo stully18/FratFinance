@@ -8,23 +8,15 @@ export default function HeroSection() {
   const { user, isLoading } = useAuth()
 
   return (
-    <section className="min-h-screen flex items-center justify-center relative overflow-hidden px-6">
-      {/* Radial glow */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at center, rgba(190,255,0,0.06) 0%, transparent 70%)',
-        }}
-      />
-
-      <div className="relative z-10 max-w-3xl mx-auto text-center">
+    <section className="min-h-[80vh] md:min-h-[84vh] flex items-center justify-center relative px-6">
+      <div className="max-w-3xl mx-auto text-center py-12 md:py-14">
         <motion.h1
           className="font-serif text-5xl md:text-7xl leading-tight tracking-[-0.03em] text-text-primary mb-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          Build <span className="text-primary">Wealth</span> While You&rsquo;re Young
+          Build <span className="text-primary">Wealth</span> With Clarity
         </motion.h1>
 
         <motion.p
@@ -33,8 +25,8 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
         >
-          Smart financial tools designed for college students and new graduates.
-          Optimize debt, maximize retirement savings, and build your investment portfolio.
+          Professional tools for students and early-career professionals to optimize debt,
+          maximize retirement contributions, and invest with confidence.
         </motion.p>
 
         <motion.div

@@ -11,7 +11,7 @@ export default function CTASection() {
   const { user, isLoading } = useAuth()
 
   return (
-    <section ref={ref} className="py-24 px-6 relative overflow-hidden">
+    <section ref={ref} className="py-16 md:py-20 px-6 relative overflow-hidden">
       {/* Radial glow */}
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
@@ -26,10 +26,10 @@ export default function CTASection() {
         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       >
-        <h2 className="font-serif text-4xl md:text-5xl text-text-primary tracking-[-0.03em] mb-5">
+        <h2 className="font-serif text-4xl md:text-5xl text-text-primary tracking-[-0.03em] mb-4">
           Start Building Your Financial Future
         </h2>
-        <p className="text-text-secondary text-lg leading-[1.7] mb-10">
+        <p className="text-text-secondary text-lg leading-[1.7] mb-8">
           Join thousands of students making smarter financial decisions.
         </p>
         {!isLoading && (

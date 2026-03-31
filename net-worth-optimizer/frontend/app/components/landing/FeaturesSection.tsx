@@ -42,9 +42,9 @@ export default function FeaturesSection() {
   const isInView = useInView(sectionRef, { once: true, margin: '-100px' })
 
   return (
-    <section ref={sectionRef} className="py-24 px-6">
+    <section ref={sectionRef} className="py-16 md:py-20 px-6">
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10 md:mb-12">
           <h2 className="font-serif text-4xl md:text-5xl text-text-primary tracking-[-0.03em] mb-4">
             Everything You Need
           </h2>

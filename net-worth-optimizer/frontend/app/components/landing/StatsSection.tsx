@@ -15,8 +15,8 @@ export default function StatsSection() {
   const isInView = useInView(ref, { once: true, margin: '-80px' })
 
   return (
-    <section ref={ref} className="py-20 px-6">
-      <div className="max-w-5xl mx-auto bg-surface-elevated rounded-2xl py-12 px-6">
+    <section ref={ref} className="py-14 md:py-16 px-6">
+      <div className="max-w-5xl mx-auto bg-surface-elevated rounded-2xl py-10 px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {stats.map((stat, i) => (
             <motion.div
