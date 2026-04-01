@@ -21,18 +21,6 @@ interface ETFAllocation {
   risk_level: string;
 }
 
-interface PaycheckBreakdown {
-  total_monthly_savings: number;
-  emergency_fund_monthly: number;
-  emergency_fund_target: number;
-  emergency_fund_current: number;
-  months_to_emergency_fund: number | null;
-  contribution_401k: number;
-  employer_match_401k: number;
-  contribution_roth_ira: number;
-  brokerage_investment: number;
-}
-
 interface PersonalizedPlanResult {
   portfolio_name: string;
   risk_profile: string;
@@ -49,7 +37,6 @@ interface PersonalizedPlanResult {
   reasoning: string[];
   next_steps: string[];
   warnings: string[] | null;
-  paycheck_breakdown: PaycheckBreakdown | null;
   months_to_emergency_fund: number | null;
 }
 
@@ -69,16 +56,9 @@ export default function InvestmentPlanPage() {
     monthly_investment_amount: financialData.monthlyBudget,
     risk_tolerance: financialData.riskTolerance,
     financial_goal: financialData.financialGoal,
-    time_horizon_years: financialData.timeHorizon,
     current_savings: financialData.currentSavings,
     has_emergency_fund: financialData.hasEmergencyFund,
-    // Paycheck allocation fields
-    monthly_gross_income: '' as number | '',
-    monthly_expenses: '' as number | '',
-    employer_401k_match_percent: '' as number | '',
     include_roth_ira: false,
-    current_emergency_fund: 0,
-    emergency_fund_months_target: 3,
   });
 
   const [plan, setPlan] = useState<PersonalizedPlanResult | null>(null);
@@ -103,7 +83,6 @@ export default function InvestmentPlanPage() {
       has_emergency_fund: financialData.hasEmergencyFund,
       risk_tolerance: financialData.riskTolerance,
       financial_goal: financialData.financialGoal,
-      time_horizon_years: financialData.timeHorizon,
     }));
   }, [financialData]);
 
@@ -114,17 +93,12 @@ export default function InvestmentPlanPage() {
 
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const grossIncome = formData.monthly_gross_income === '' ? null : formData.monthly_gross_income;
-      const expenses = formData.monthly_expenses === '' ? null : Number(formData.monthly_expenses);
-      const emergencyFundFull = expenses !== null
-        ? formData.current_emergency_fund >= expenses * formData.emergency_fund_months_target
-        : formData.has_emergency_fund;
       const payload = {
         ...formData,
-        monthly_gross_income: grossIncome,
-        monthly_expenses: expenses,
-        employer_401k_match_percent: formData.employer_401k_match_percent === '' ? null : formData.employer_401k_match_percent,
-        has_emergency_fund: emergencyFundFull,
+        time_horizon_years: 10,
+        monthly_gross_income: null,
+        monthly_expenses: null,
+        employer_401k_match_percent: null,
       };
       const response = await fetch(`${API_BASE_URL}/api/plan/generate`, {
         method: 'POST',
@@ -149,7 +123,6 @@ export default function InvestmentPlanPage() {
         hasEmergencyFund: formData.has_emergency_fund,
         riskTolerance: formData.risk_tolerance as any,
         financialGoal: formData.financial_goal as any,
-        timeHorizon: formData.time_horizon_years,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -197,52 +170,20 @@ export default function InvestmentPlanPage() {
           Personalized Investment Plan
         </h1>
         <p className="text-text-muted mb-8">
-          Enter your income, expenses, and goals to get a personalized portfolio with a full paycheck allocation plan
+          Enter how much you have available to invest each month and your goals to get a personalized ETF portfolio
         </p>
 
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="bg-surface border border-border-subtle rounded-xl p-6 mb-8 space-y-8">
 
-          {/* Section 1: Income & Savings */}
+          {/* Section 1: Investment Amount */}
           <div>
-            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">Income &amp; Savings</h3>
+            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">Investment Amount</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Take-Home Pay</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-3 text-text-muted">$</span>
-                  <input
-                    type="number"
-                    name="monthly_gross_income"
-                    value={formData.monthly_gross_income}
-                    onChange={handleChange}
-                    min="0"
-                    step="1"
-                    placeholder="e.g. 4000"
-                    className="w-full pl-8 pr-4 py-3 bg-surface-elevated/60 border border-border rounded-lg text-text-primary placeholder-text-muted/70 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Monthly Living Expenses</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-3 text-text-muted">$</span>
-                  <input
-                    type="number"
-                    name="monthly_expenses"
-                    value={formData.monthly_expenses}
-                    onChange={handleChange}
-                    min="0"
-                    step="1"
-                    placeholder="e.g. 2000"
-                    className="w-full pl-8 pr-4 py-3 bg-surface-elevated/60 border border-border rounded-lg text-text-primary placeholder-text-muted/70 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                  />
-                </div>
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-text-secondary mb-2">
-                  Monthly Savings Budget
-                  <span className="ml-1 text-text-muted/70 font-normal text-xs">(total to save/invest)</span>
+                  Monthly Amount to Invest
+                  <span className="block text-xs text-text-muted/70 font-normal">After bills, expenses &amp; emergency fund</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-3 text-text-muted">$</span>
@@ -253,81 +194,40 @@ export default function InvestmentPlanPage() {
                     onChange={handleChange}
                     min="1"
                     step="1"
-                    className="w-full pl-8 pr-4 py-3 bg-surface-elevated/60 border border-border rounded-lg text-text-primary focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                    placeholder="e.g. 500"
+                    className="w-full pl-8 pr-4 py-3 bg-surface-elevated/60 border border-border rounded-lg text-text-primary placeholder-text-muted/70 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                     required
                   />
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border-subtle" />
-
-          {/* Section 2: Emergency Fund & Accounts */}
-          <div>
-            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">Emergency Fund &amp; Accounts</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Current Emergency Fund</label>
+                <label className="block text-sm font-medium text-text-secondary mb-2">Current Investment Savings</label>
                 <div className="relative">
                   <span className="absolute left-3 top-3 text-text-muted">$</span>
                   <input
                     type="number"
-                    name="current_emergency_fund"
-                    value={formData.current_emergency_fund}
+                    name="current_savings"
+                    value={formData.current_savings}
                     onChange={handleChange}
                     min="0"
                     step="1"
                     placeholder="0"
                     className="w-full pl-8 pr-4 py-3 bg-surface-elevated/60 border border-border rounded-lg text-text-primary placeholder-text-muted/70 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                    required
                   />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Emergency Fund Target</label>
-                <select
-                  name="emergency_fund_months_target"
-                  value={formData.emergency_fund_months_target}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-surface-elevated/60 border border-border rounded-lg text-text-primary focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                >
-                  <option value={3}>3 months of expenses</option>
-                  <option value={4}>4 months of expenses</option>
-                  <option value={5}>5 months of expenses</option>
-                  <option value={6}>6 months of expenses</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">
-                  Employer 401k Match
-                  <span className="block text-xs text-text-muted/70 font-normal">% of salary employer matches</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    name="employer_401k_match_percent"
-                    value={formData.employer_401k_match_percent}
-                    onChange={handleChange}
-                    min="0"
-                    max="100"
-                    step="0.5"
-                    placeholder="e.g. 5"
-                    className="w-full pl-4 pr-8 py-3 bg-surface-elevated/60 border border-border rounded-lg text-text-primary placeholder-text-muted/70 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                  />
-                  <span className="absolute right-3 top-3 text-text-muted">%</span>
                 </div>
               </div>
               <div className="flex items-center pt-7">
                 <input
                   type="checkbox"
-                  name="include_roth_ira"
-                  checked={formData.include_roth_ira}
+                  name="has_emergency_fund"
+                  checked={formData.has_emergency_fund}
                   onChange={handleChange}
                   className="w-5 h-5 bg-surface-elevated border border-border rounded text-primary focus:ring-2 focus:ring-primary/20"
                 />
                 <label className="ml-3 text-sm font-medium text-text-secondary">
-                  Include Roth IRA
-                  <span className="block text-xs text-text-muted/70">Up to $583/mo ($7k/yr)</span>
+                  I have an emergency fund
+                  <span className="block text-xs text-text-muted/70">3–6 months of expenses saved</span>
                 </label>
               </div>
             </div>
@@ -335,10 +235,10 @@ export default function InvestmentPlanPage() {
 
           <div className="border-t border-border-subtle" />
 
-          {/* Section 3: Investment Goals */}
+          {/* Section 2: Goals & Preferences */}
           <div>
-            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">Investment Goals</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">Goals &amp; Preferences</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-2">Risk Tolerance</label>
                 <select
@@ -366,34 +266,18 @@ export default function InvestmentPlanPage() {
                   <option value="debt_freedom">Debt Freedom</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Time Horizon (Years)</label>
+              <div className="flex items-center pt-7">
                 <input
-                  type="number"
-                  name="time_horizon_years"
-                  value={formData.time_horizon_years}
+                  type="checkbox"
+                  name="include_roth_ira"
+                  checked={formData.include_roth_ira}
                   onChange={handleChange}
-                  min="1"
-                  max="50"
-                  className="w-full px-4 py-3 bg-surface-elevated/60 border border-border rounded-lg text-text-primary focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                  required
+                  className="w-5 h-5 bg-surface-elevated border border-border rounded text-primary focus:ring-2 focus:ring-primary/20"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Current Investment Savings</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-3 text-text-muted">$</span>
-                  <input
-                    type="number"
-                    name="current_savings"
-                    value={formData.current_savings}
-                    onChange={handleChange}
-                    min="0"
-                    step="1"
-                    className="w-full pl-8 pr-4 py-3 bg-surface-elevated/60 border border-border rounded-lg text-text-primary focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                    required
-                  />
-                </div>
+                <label className="ml-3 text-sm font-medium text-text-secondary">
+                  Include Roth IRA
+                  <span className="block text-xs text-text-muted/70">Up to $583/mo ($7k/yr)</span>
+                </label>
               </div>
             </div>
           </div>
@@ -436,93 +320,6 @@ export default function InvestmentPlanPage() {
                 </div>
               </div>
             </div>
-
-            {/* Paycheck Allocation Breakdown */}
-            {plan.paycheck_breakdown && (
-              <div className="bg-surface border border-border-subtle rounded-xl p-6">
-                <h3 className="text-xl font-semibold tracking-tight text-text-primary mb-1">Your Paycheck Allocation</h3>
-                <p className="text-sm text-text-muted mb-5">
-                  How your ${plan.paycheck_breakdown.total_monthly_savings.toLocaleString()}/mo savings budget is divided across accounts
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Emergency Fund */}
-                  <div className="bg-surface-elevated/40 border border-warning/20 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-warning"></div>
-                      <span className="text-xs font-semibold text-warning uppercase tracking-wide">Emergency Fund</span>
-                    </div>
-                    <div className="text-2xl font-semibold text-text-primary mb-1">
-                      ${plan.paycheck_breakdown.emergency_fund_monthly.toLocaleString()}<span className="text-sm text-text-muted">/mo</span>
-                    </div>
-                    {plan.paycheck_breakdown.emergency_fund_monthly > 0 ? (
-                      <div className="text-xs text-text-muted">
-                        {plan.paycheck_breakdown.months_to_emergency_fund
-                          ? `~${plan.paycheck_breakdown.months_to_emergency_fund} months to goal`
-                          : 'Building fund'
-                        }
-                        <div className="mt-1 text-text-muted/70">
-                          ${plan.paycheck_breakdown.emergency_fund_current.toLocaleString()} of ${plan.paycheck_breakdown.emergency_fund_target.toLocaleString()} target
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-success">Fund complete</div>
-                    )}
-                  </div>
-
-                  {/* 401k */}
-                  <div className="bg-surface-elevated/40 border border-primary/20 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <span className="text-xs font-semibold text-primary uppercase tracking-wide">401k</span>
-                    </div>
-                    <div className="text-2xl font-semibold text-text-primary mb-1">
-                      ${plan.paycheck_breakdown.contribution_401k.toLocaleString()}<span className="text-sm text-text-muted">/mo</span>
-                    </div>
-                    {plan.paycheck_breakdown.employer_match_401k > 0 && (
-                      <div className="text-xs text-text-muted">
-                        <span className="text-success">+${plan.paycheck_breakdown.employer_match_401k.toLocaleString()} employer match</span>
-                        <div className="text-text-muted/70">= ${(plan.paycheck_breakdown.contribution_401k + plan.paycheck_breakdown.employer_match_401k).toLocaleString()} total/mo</div>
-                      </div>
-                    )}
-                    {plan.paycheck_breakdown.contribution_401k === 0 && (
-                      <div className="text-xs text-text-muted/70">No match configured</div>
-                    )}
-                  </div>
-
-                  {/* Roth IRA */}
-                  {plan.paycheck_breakdown.contribution_roth_ira > 0 && (
-                    <div className="bg-surface-elevated/40 border border-accent-violet/20 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-accent-violet"></div>
-                        <span className="text-xs font-semibold text-accent-violet uppercase tracking-wide">Roth IRA</span>
-                      </div>
-                      <div className="text-2xl font-semibold text-text-primary mb-1">
-                        ${plan.paycheck_breakdown.contribution_roth_ira.toLocaleString()}<span className="text-sm text-text-muted">/mo</span>
-                      </div>
-                      <div className="text-xs text-text-muted">Tax-free growth</div>
-                      <div className="text-xs text-text-muted/70">${(plan.paycheck_breakdown.contribution_roth_ira * 12).toLocaleString()} of $7,000/yr limit</div>
-                    </div>
-                  )}
-
-                  {/* Brokerage */}
-                  <div className="bg-surface-elevated/40 border border-success/20 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-success"></div>
-                      <span className="text-xs font-semibold text-success uppercase tracking-wide">Brokerage</span>
-                    </div>
-                    <div className="text-2xl font-semibold text-text-primary mb-1">
-                      ${plan.paycheck_breakdown.brokerage_investment.toLocaleString()}<span className="text-sm text-text-muted">/mo</span>
-                    </div>
-                    <div className="text-xs text-text-muted">ETF portfolio below</div>
-                  </div>
-                </div>
-
-                <p className="text-xs text-text-muted/70 mt-4">
-                  The ETF allocation below is for your brokerage account (${plan.paycheck_breakdown.brokerage_investment.toLocaleString()}/mo). Projections reflect brokerage growth only.
-                </p>
-              </div>
-            )}
 
             {/* Warnings */}
             {plan.warnings && plan.warnings.length > 0 && (

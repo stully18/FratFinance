@@ -243,7 +243,7 @@ export default function DebtOptimizerPage() {
             <h2 className="text-2xl font-semibold tracking-tight text-text-primary">Your Loans</h2>
             <button
               onClick={addLoan}
-              className="px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg transition-colors font-semibold text-sm active:scale-[0.98]"
+              className="px-4 py-2 bg-primary hover:bg-primary-hover text-[#0f2a00] rounded-lg transition-colors font-semibold text-sm active:scale-[0.98]"
             >
               + Add Loan
             </button>
