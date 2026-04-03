@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Layers } from 'lucide-react'
 import { signIn } from '@/lib/auth'
 import { useAuth } from '@/app/context/AuthContext'
 
@@ -57,6 +58,18 @@ export default function LoginForm() {
 
   return (
     <div className="w-full max-w-md">
+      {!user && (
+        <Link
+          href="/"
+          aria-label="Back to StackSmart home"
+          className="fixed top-6 left-6 z-50 flex items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background group"
+        >
+          <Layers size={22} className="text-primary" aria-hidden />
+          <span className="text-[1.35rem] font-semibold tracking-tight text-text-primary transition-colors group-hover:text-white">
+            StackSmart
+          </span>
+        </Link>
+      )}
       <div className="glass-card rounded-xl shadow-2xl shadow-black/60 p-8">
         {/* Logo/Title */}
         <div className="text-center mb-8">
