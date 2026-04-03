@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import BrokerageLinks from '@/app/components/BrokerageLinks';
 import { ArrowLeft, Check, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useFinancialData } from '../../context/FinancialContext';
@@ -447,6 +448,8 @@ export default function InvestmentPlanPage() {
                 ))}
               </ol>
             </div>
+
+            <BrokerageLinks />
           </div>
         )}
       </div>

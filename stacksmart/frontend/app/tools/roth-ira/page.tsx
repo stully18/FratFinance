@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import BrokerageLinks from '@/app/components/BrokerageLinks';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, DollarSign, Zap, ShieldCheck } from 'lucide-react';
 
@@ -318,6 +319,8 @@ export default function RothIRAPage() {
               <span className="text-text-secondary">Set up automatic monthly contributions and forget about it</span>
             </li>
           </ol>
+
+          <BrokerageLinks />
 
           <div className="bg-surface-elevated/30 border-l-4 border-warning border-t border-r border-b border-t-border-subtle border-r-border-subtle border-b-border-subtle rounded-lg p-4">
             <p className="text-warning font-semibold mb-2">The Best Time to Start Was Yesterday</p>
