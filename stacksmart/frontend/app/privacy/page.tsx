@@ -80,8 +80,8 @@ export default function PrivacyPage() {
             <p>
               If you have questions about this privacy policy or want to request deletion of your data,
               please email us at{' '}
-              <a href="mailto:hello@stacksmart.io" className="text-primary hover:text-primary-hover transition-colors">
-                hello@stacksmart.io
+              <a href="mailto:support@stacksmart.dev" className="text-primary hover:text-primary-hover transition-colors">
+                support@stacksmart.dev
               </a>
               .
             </p>
